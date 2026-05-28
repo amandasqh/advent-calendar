@@ -1,7 +1,7 @@
 # 🎂 Birthday App — Setup Guide
 
 ## Files
-- `BirthdayApp.jsx` — main React frontend (deploy to Cloudflare Pages)
+- `Main.jsx` — main React frontend (deploy to Cloudflare Pages)
 - `worker.js` — Cloudflare Worker (state sync + Telegram bot)
 - `wrangler.toml` — Worker config
 
