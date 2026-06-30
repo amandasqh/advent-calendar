@@ -1,0 +1,116 @@
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+:root {
+  --green: #0ae448;
+  --black: #0e100f;
+  --white: #fffce1;
+  --lt: #abff84;
+  --grey: #191919;
+  --s75: #bbbaa6;
+  --s50: #7c7c6f;
+  --s25: #42433d;
+  --grad-blue: linear-gradient(114.41deg, #0aa3e4 20.74%, #6bc4ff 65.5%);
+  --grad-orange: linear-gradient(111.45deg, #ff8709 19.42%, #f7bdf8 73.08%);
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  font-family: "Atkinson Hyperlegible Mono", sans-serif;
+  background: radial-gradient(ellipse at 50% 50%, #a0b3e5 0%, #e8fbff 100%);
+  color: var(--black);
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+.btn {
+    /* fatter corners */
+    border-radius: 20px;
+    padding: 0.8rem 1.5rem;
+}
+
+.btn-primary {
+    background-color: #5aa9e6;
+    border-color: #5aa9e6;
+    color: var(--white);
+}
+
+.btn-primary:hover {
+    background-color: transparent;
+    border-color: #5aa9e6;
+}
+
+.glow{
+    /* glow animated effect for button */
+    box-shadow: 0 0 10px #5aa9e6, 0 0 20px #5aa9e6, 0 0 30px #5aa9e6, 0 0 40px #5aa9e6;
+}
+
+.btn-outline-primary {
+    color: var(--black);
+    border-color: #5aa9e6;
+}
+
+.btn-outline-primary:hover {
+    background-color: #5aa9e6;
+    border-color: #5aa9e6;
+}
+
+.buttons {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 40%;
+  position: relative;
+}
+
+.mag-zone {
+  width: 280px;
+  height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* border-radius: 50%;
+  border: 1px dashed var(--s25); */
+  position: relative;
+  cursor: pointer;
+}
+.mag-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.8rem 1.3rem;
+  border-radius: 99px;
+  border: none;
+  cursor: pointer;
+  color: var(--black);
+  overflow: hidden;
+  will-change: transform;
+  width: 240px;
+}
+.mag-btn .bg {
+  position: absolute;
+  inset: 0;
+  border-radius: 99px;
+  z-index: 0;
+}
+.mag-btn .label {
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+  color: var(--white);
+}
+
+.mag-btn.blue .bg {
+  background: var(--grad-blue);
+}

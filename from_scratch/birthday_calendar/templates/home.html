@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% load static %} 
+
+{% block content %}
+  <!-- Main Content -->
+    <div class="container text-center d-flex align-items-center justify-content-center flex-column vh-100">
+        <h1 class="display-4 fw-medium">Happy Birthday Mosmos!</h1>
+        <div id="typewriter" class="fs-5 mt-2"></div>
+        <div class="buttons" style="visibility: hidden;">
+            <div class="mag-zone" data-mode="false" data-wiggle="false">
+                <a href="{% url 'letter' %}" class="mag-btn blue glow" id="btnFalse">
+                    <div class="bg"></div>
+                    <span class="label">Click to Open Your Surprise</span>
+                </a>
+            </div>
+        </div>
+        <a href="{% url 'main_screen' %}" class="btn btn-outline-primary btn-sm m-0 fw-semibold" id="skipButton">Skip to Main Screen</a>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/home.js' %}"></script>
+{% endblock %}
