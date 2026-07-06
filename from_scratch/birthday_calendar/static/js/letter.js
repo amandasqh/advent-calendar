@@ -36,8 +36,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         gsap.set(body, { opacity: 0, y: 48 });
         gsap.set(nav, { opacity: 0, y: 24 });
+        gsap.set(paragraphs, { opacity: 0.25, color: 'var(--ink-soft)' });
 
-        gsap.timeline({
+        var tl = gsap.timeline({
             scrollTrigger: {
                 trigger: '.letter-page',
                 start: 'top top',
@@ -48,18 +49,42 @@ document.addEventListener('DOMContentLoaded', () => {
         .to(wrap, {
             width: '100%',
             maxWidth: '1200px',
-            ease: 'power2.out'
+            ease: 'power2.out',
+            duration: 0.2
         }, 0)
         .to(body, {
             opacity: 1,
             y: 0,
-            ease: 'power2.out'
-        }, 0.06)
-        .to(nav, {
+            ease: 'power2.out',
+            duration: 0.15
+        }, 0.05);
+
+        // Softer, calmer line-by-line reveal: no scale/bounce, just a gentle
+        // fade from dim to full ink color. Spread evenly across a fixed
+        // fraction of the FULL scroll range (not each paragraph's own
+        // viewport position) so every line is guaranteed to finish revealing
+        // well before the bottom of the page, however many lines there are.
+        if (paragraphs.length) {
+            var revealStart = 0.3;
+            var revealEnd = 0.85;
+            var step = paragraphs.length > 1 ? (revealEnd - revealStart) / (paragraphs.length - 1) : 0;
+            var lineDuration = Math.min(0.35, step * 0.9 || 0.35);
+            paragraphs.forEach(function (p, i) {
+                tl.to(p, {
+                    opacity: 1,
+                    color: 'var(--ink)',
+                    duration: lineDuration,
+                    ease: 'sine.inOut'
+                }, revealStart + i * step);
+            });
+        }
+
+        tl.to(nav, {
             opacity: 1,
             y: 0,
-            ease: 'power2.out'
-        }, 0.94);
+            ease: 'power2.out',
+            duration: 0.1
+        }, 0.92);
 
         gsap.to(card, {
             yPercent: -4,
@@ -70,35 +95,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 end: 'bottom bottom',
                 scrub: 1
             }
-        });
-    }
-
-    // -----------------------------------------------------------------
-    // Karaoke-style line reveal: each paragraph starts small/dim, then
-    // pops into an accent color at full size as it scrolls into view --
-    // like a lyric being "sung" as you reach it -- before settling into
-    // its normal readable color. Scrolling back up un-reveals it again,
-    // so the highlight always tracks where you actually are in the letter
-    // instead of firing everything within one narrow chunk of scroll.
-    // -----------------------------------------------------------------
-    if (window.gsap && window.ScrollTrigger && paragraphs.length) {
-        gsap.set(paragraphs, { opacity: 0.2, scale: 0.92, color: 'var(--ink-soft)' });
-
-        paragraphs.forEach((p) => {
-            var pop = gsap.timeline({ paused: true })
-                .to(p, { opacity: 1, scale: 1.08, color: 'var(--blush-pink-dk)', duration: 0.35, ease: 'back.out(2)' })
-                .to(p, { scale: 1, color: 'var(--ink)', duration: 0.3, ease: 'power2.out' });
-
-            ScrollTrigger.create({
-                trigger: p,
-                start: 'top 75%',
-                end: 'bottom 45%',
-                onEnter: function () { pop.play(0); },
-                onEnterBack: function () { pop.play(0); },
-                onLeaveBack: function () {
-                    gsap.to(p, { opacity: 0.2, scale: 0.92, color: 'var(--ink-soft)', duration: 0.3, ease: 'power2.out' });
-                },
-            });
         });
     }
 

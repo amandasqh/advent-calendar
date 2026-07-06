@@ -1,4 +1,4 @@
-.letter-page{min-height:100vh;display:flex;align-items:center;justify-content:center;
+.letter-page{min-height:220vh;display:flex;align-items:center;justify-content:center;
   padding:var(--sp5) var(--sp3);}
 .letter-wrap{position:relative;max-width:800px;width:100%}
 .tape{position:absolute;width:90px;height:34px;
