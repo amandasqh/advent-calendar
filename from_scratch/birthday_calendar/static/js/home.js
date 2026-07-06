@@ -60,7 +60,23 @@ document.addEventListener('DOMContentLoaded', () => {
         // delay few seconds then show the buttons ease in
         setTimeout(() => {
             buttons.style.visibility = 'visible';
-            gsap.from(buttons, { duration: 1, opacity: 0, y: 20, ease: 'power3.out' });
+            gsap.from(buttons, {
+                duration: 1,
+                opacity: 0,
+                y: 20,
+                ease: 'power3.out',
+                onComplete: () => {
+                    // a gentle "notice me" breathing pulse, independent of the
+                    // magnetic-follow tween (which animates x/y, not scale)
+                    gsap.to(btn, {
+                        scale: 1.05,
+                        duration: 1.3,
+                        ease: 'sine.inOut',
+                        yoyo: true,
+                        repeat: -1,
+                    });
+                },
+            });
         }, 10000);
     }
 });

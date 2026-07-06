@@ -1,17 +1,228 @@
 {% extends 'base.html' %}
-{% load static %} 
+{% load static %}
 
 {% block style %}
-  <!-- Main CSS -->
-  <link rel="stylesheet" href="{% static 'css/main_screen.css' %}">
-
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsvectormap@1.5.3/dist/css/jsvectormap.min.css">
+<link rel="stylesheet" href="{% static 'css/letter.css' %}">
+<link rel="stylesheet" href="{% static 'css/main_screen.css' %}">
 {% endblock %}
 
 {% block content %}
-  <!-- Main Content -->
+<main class="main-screen">
+  <div class="floating-bg" aria-hidden="true"></div>
+
+  <div class="main-shell">
+    <section class="hero" aria-label="Birthday countdown intro">
+      <p class="eyebrow">July 2026</p>
+      <h1>for you, my love <img src="{% static 'img/logo.png' %}" alt="Logo" class="hero-logo" /></h1>
+      <p class="subcopy">A collection of tiny moments, memories, and gentle reminders that you are loved.</p>
+    </section>
+
+    <section class="countdown-card" aria-label="Countdown to birthday">
+      <div class="countdown" id="countdown">
+        <div class="countdown-item">
+          <div class="flip-card"><span class="flip-digit" id="days">00</span></div>
+          <small>Days</small>
+        </div>
+        <div class="countdown-item">
+          <div class="flip-card"><span class="flip-digit" id="hours">00</span></div>
+          <small>Hours</small>
+        </div>
+        <div class="countdown-item">
+          <div class="flip-card"><span class="flip-digit" id="minutes">00</span></div>
+          <small>Minutes</small>
+        </div>
+        <div class="countdown-item">
+          <div class="flip-card"><span class="flip-digit" id="seconds">00</span></div>
+          <small>Seconds</small>
+        </div>
+      </div>
+      <p class="countdown-note">until your birthday</p>
+    </section>
+
+    <section class="progress-card d-flex gap-2 align-items-center" aria-label="Opened surprises progress">
+      <div class="progress-track" aria-hidden="true">
+        <div class="progress-bar" id="progress-bar" style="width: 0%"></div>
+      </div>
+      <strong id="progress-text">0/{{ total_boxes }}</strong>
+    </section>
+
+    <section class="table-card" aria-label="Advent calendar board">
+      <p class="table-hint subcopy">Drag the unlocked pieces from the stacks into the middle ✨</p>
+      <div class="table-surface" id="table-surface" data-today-index="{{ today_index }}">
+        {% for box in boxes %}
+        <button class="table-item state-{{ box.state }} type-{{ box.type }}" type="button"
+          data-number="{{ box.number }}"
+          data-type="{{ box.type }}"
+          data-state="{{ box.state }}"
+          data-content="{{ box.content_json }}"
+          data-stamp="{{ box.collect_stamp|yesno:'true,false' }}"
+          data-stamp-title="{{ box.stamp_title|default:'Little stamp' }}"
+          data-stamp-body="{{ box.stamp_body|default:'A sweet keepsake for your collection.' }}"
+          data-stamp-date="{{ box.stamp_date|default:'' }}"
+          data-stamp-image="{% static box.stamp_image %}"
+          data-has-saved-position="{{ box.has_saved_position|yesno:'true,false' }}"
+          style="--x: {{ box.x }}px; --y: {{ box.y }}px;">
+          <span class="table-item__inner">
+            <span class="lock-ribbon" aria-hidden="true">🔒</span>
+            <span class="sparkle-layer" aria-hidden="true"><span>✦</span><span>✧</span><span>✦</span><span>✧</span></span>
+            <img src="{% static box.image %}" alt="Day {{ box.number }}" />
+            <span class="table-item__label">{{ box.number }}</span>
+            <span class="opened-sticker" aria-hidden="true">✓</span>
+          </span>
+        </button>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+</main>
+
+{% if stamp_collection_unlocked %}
+<button class="floating-action floating-action--right" id="stamp-trigger" type="button"
+  aria-label="Open stamp collection">
+  <span class="floating-action__icon">
+    <img src="{% static 'img/box.png' %}" alt="Mailbox icon" id="mailbox-icon" />
+      <span class="position-absolute top-60 start-60 translate-middle badge rounded-pill"><strong id="stamp-count">0</strong></span>
+  </span>
+</button>
+{% endif %}
+
+{% if playlist_unlocked %}
+<iframe id="music-iframe" src="{% url 'music_player' %}" title="Music Player"></iframe>
+{% endif %}
+
+<!-- Generic surprise modal: used for photo / others -->
+<div class="modal-backdrop d-none" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal-card">
+    <button class="modal-close" id="modal-close" type="button" aria-label="Close">×</button>
+    <div class="modal-emoji" id="modal-emoji">💌</div>
+    <h2 id="modal-title">A little surprise</h2>
+    <p id="modal-body">A little something special is waiting for you.</p>
+    <div class="modal-photo-grid" id="modal-photo-grid"></div>
+    <div class="modal-actions" id="modal-actions"></div>
+  </div>
+</div>
+
+<!-- Gift modal: shake (mouse-hold or phone) to reveal, then confetti -->
+<div class="modal-backdrop d-none" id="gift-modal" role="dialog" aria-modal="true" aria-labelledby="gift-modal-title">
+  <div class="modal-card gift-modal-card">
+    <button class="modal-close" id="gift-modal-close" type="button" aria-label="Close">×</button>
+    <p class="fs-6 fw-light fst-italic">Surprise! You have received a gift.</p>
+    <div class="modal-emoji" id="gift-modal-emoji">🎁</div>
+
+    <div id="gift-shake-stage" class="gift-shake-stage">
+      <img id="gift-box-art" class="gift-box-art" src="{% static 'img/gifts/giftbox.png' %}" alt="A wrapped gift box" />
+      <div class="gift-shake-meter" aria-hidden="true"><div class="gift-shake-meter__fill" id="gift-shake-fill"></div></div>
+      <p class="gift-shake-hint" id="gift-shake-hint">Press &amp; hold, then shake your mouse<br class="d-none d-md-inline"> (or shake your phone!) to open it</p>
+    </div>
+
+    <div id="gift-reveal" class="gift-reveal d-none">
+      <h2 id="gift-modal-title">A gift for you</h2>
+      <p id="gift-modal-body"></p>
+      <p class="gift-collect-hint">🎁 Come collect this one from me in person!</p>
+    </div>
+  </div>
+</div>
+
+<!-- Coupon modal: scratch-to-reveal canvas over each coupon image -->
+<div class="modal-backdrop d-none" id="coupon-modal" role="dialog" aria-modal="true" aria-labelledby="coupon-modal-title">
+  <div class="modal-card coupon-modal-card">
+    <button class="modal-close" id="coupon-modal-close" type="button" aria-label="Close">×</button>
+    <p class="fs-6 fw-light fst-italic">Congratulations! You have received a coupon. Scratch to reveal the coupon.</p>
+    <div id="coupon-scratch-list" class="coupon-scratch-list"></div>
+    <p id="coupon-modal-title" class="mt-3 mb-0 fsw-bold fs-5">Scratch to reveal</p>
+    <p id="coupon-modal-body" class="subcopy mt-0 fsw-normal"></p>
+  </div>
+</div>
+
+<!-- Letter modal: reuses the letter.css look -->
+<div class="modal-backdrop d-none" id="letter-modal" role="dialog" aria-modal="true" aria-labelledby="letter-modal-title">
+  <div class="modal-card letter-modal-card">
+    <button class="modal-close" id="letter-modal-close" type="button" aria-label="Close">×</button>
+    <div class="letter-modal-tape" aria-hidden="true"></div>
+    <p class="letter-modal-date" id="letter-modal-date"></p>
+    <h2 class="letter-modal-title" id="letter-modal-title">Dear Mossy,</h2>
+    <div class="letter-modal-body" id="letter-modal-body"></div>
+    <p class="letter-modal-sign">with all my love 💕</p>
+  </div>
+</div>
+
+<!-- World map modal (day 18) -- rendered with jsVectorMap, see main_screen.js -->
+<div class="modal-backdrop d-none" id="map-modal" role="dialog" aria-modal="true" aria-labelledby="map-modal-title">
+  <div class="modal-card map-modal-card">
+    <button class="modal-close" id="map-modal-close" type="button" aria-label="Close">×</button>
+    <h2 id="map-modal-title">Where we've been &amp; where we're going</h2>
+    <p class="subcopy">Hover a pin for the place name.</p>
+    <div id="jvm-world-map" class="jvm-world-map"></div>
+    <div class="map-legend">
+      <span><i class="map-dot map-dot--visited"></i> Visited</span>
+      <span><i class="map-dot map-dot--upcoming"></i> Upcoming trip</span>
+      <span><i class="map-dot map-dot--wishlist"></i> Bucket list</span>
+    </div>
+  </div>
+</div>
+
+<!-- Bucket list modal (day 10) -->
+<div class="modal-backdrop d-none" id="bucketlist-modal" role="dialog" aria-modal="true" aria-labelledby="bucketlist-modal-title">
+  <div class="modal-card bucketlist-modal-card">
+    <button class="modal-close" id="bucketlist-modal-close" type="button" aria-label="Close">×</button>
+    <div class="modal-emoji" id="bucketlist-modal-emoji">📝</div>
+    <h2 id="bucketlist-modal-title">Our bucket list</h2>
+    <p id="bucketlist-modal-body" class="subcopy"></p>
+    <p class="bucketlist-progress" id="bucketlist-progress"></p>
+    <div id="bucketlist-items" class="bucketlist-items"></div>
+  </div>
+</div>
+
+<!-- Breathing modal (day 23) -->
+<div class="modal-backdrop d-none" id="breathing-modal" role="dialog" aria-modal="true" aria-labelledby="breathing-modal-title">
+  <div class="modal-card breathing-modal-card">
+    <button class="modal-close" id="breathing-modal-close" type="button" aria-label="Close">×</button>
+    <h2 id="breathing-modal-title">Breathe with me</h2>
+    <div class="breathing-stage">
+      <div class="breathing-circle" id="breathing-circle"></div>
+      <p class="breathing-instruction py-auto my-auto fst-italic fw-normal" id="breathing-instruction">Ready?</p>
+    </div>
+    <p class="breathing-affirmation" id="breathing-affirmation"></p>
+    <button class="btn btn-outline-primary btn-sm" id="breathing-toggle">Start</button>
+  </div>
+</div>
+
+<!-- Finale gift-box reveal (day 24) -->
+<div class="modal-backdrop d-none" id="finale-modal" role="dialog" aria-modal="true" aria-labelledby="finale-modal-title">
+  <div class="modal-card finale-modal-card">
+    <button class="modal-close" id="finale-modal-close" type="button" aria-label="Close">×</button>
+    <div class="finale-gift-box" id="finale-gift-box" aria-hidden="true">🎁</div>
+    <h2 id="finale-modal-title">One last gift</h2>
+    <p class="subcopy">For everything we've shared this year, and everything still ahead.</p>
+    <a href="{% url 'finale' %}" class="btn btn-primary glow my-4" id="finale-open-btn">Open it →</a>
+  </div>
+</div>
+
+<div class="modal-backdrop d-none" id="stamp-modal" role="dialog" aria-modal="true" aria-labelledby="stamp-modal-title">
+  <div class="modal-card stamp-modal-card">
+    <button class="modal-close" id="stamp-modal-close" type="button" aria-label="Close">×</button>
+    <p class="fs-6 fw-light fst-italic">A new stamp has been added to your collection.</p>
+    <img class="stamp-modal-image" id="stamp-modal-image" src="" alt="Collected stamp" />
+    <p class="fs-5" id="stamp-modal-title"></p>
+    <p class="fw-medium" id="stamp-modal-body"></p>
+    <p class="text-muted font-monospace" id="stamp-modal-date"></p>
+  </div>
+</div>
+
+<div class="modal-backdrop d-none" id="stamp-collection-modal" role="dialog" aria-modal="true"
+  aria-labelledby="stamp-collection-title">
+  <div class="modal-card stamp-collection-card">
+    <button class="modal-close" id="stamp-collection-close" type="button" aria-label="Close">×</button>
+    <h2 id="stamp-collection-title">Your stamp mailbox</h2>
+    <div id="stamp-collection-list" class="stamp-collection-list"></div>
+  </div>
+</div>
 
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/jsvectormap@1.5.3/dist/js/jsvectormap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsvectormap@1.5.3/dist/maps/world.js"></script>
 <script src="{% static 'js/main_screen.js' %}"></script>
 {% endblock %}

@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block style %}
+<link rel="stylesheet" href="{% static 'css/finale.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="finale-hearts" id="finale-hearts" aria-hidden="true"></div>
+
+<main class="finale-page">
+
+  <section class="finale-hero" aria-label="Finale intro">
+    <p class="finale-eyebrow">day twenty-four</p>
+    <h1 class="finale-hero-title">One last thing before your birthday...</h1>
+    <p class="finale-hero-sub">Scroll down, love. This one's the whole story.</p>
+    <div class="finale-scroll-cue" aria-hidden="true">↓</div>
+  </section>
+
+  <section class="finale-scrapbook" aria-label="Scrapbook notes">
+    <!-- TODO: swap in your own notes/memories -- these are placeholders -->
+    <div class="scrap-note scrap-note--tape" data-reveal>
+      <p>We've laughed more this year than I can count. Thank you for every single time.</p>
+    </div>
+    <div class="scrap-note scrap-note--pin" data-reveal>
+      <p>Every "first" with you has been my favourite kind of nervous.</p>
+    </div>
+    <div class="scrap-note scrap-note--tape" data-reveal>
+      <p>You make ordinary Tuesdays feel like something worth remembering.</p>
+    </div>
+  </section>
+
+  <section class="finale-polaroids" aria-label="Polaroid photos">
+    <!-- TODO: replace src with real photos at static/img/finale/polaroid-*.jpg -->
+    <figure class="polaroid" data-reveal>
+      <img src="{% static 'img/finale/polaroid-1.jpg' %}" alt="A memory of us" onerror="this.closest('.polaroid').classList.add('img-missing')">
+      <figcaption>day one, somehow already my favourite</figcaption>
+    </figure>
+    <figure class="polaroid" data-reveal>
+      <img src="{% static 'img/finale/polaroid-2.jpg' %}" alt="A memory of us" onerror="this.closest('.polaroid').classList.add('img-missing')">
+      <figcaption>the trip we almost didn't take</figcaption>
+    </figure>
+    <figure class="polaroid" data-reveal>
+      <img src="{% static 'img/finale/polaroid-3.jpg' %}" alt="A memory of us" onerror="this.closest('.polaroid').classList.add('img-missing')">
+      <figcaption>you, mid-laugh, my favourite you</figcaption>
+    </figure>
+    <figure class="polaroid" data-reveal>
+      <img src="{% static 'img/finale/polaroid-4.jpg' %}" alt="A memory of us" onerror="this.closest('.polaroid').classList.add('img-missing')">
+      <figcaption>this one's just for us</figcaption>
+    </figure>
+  </section>
+
+  <section class="finale-loop-section" aria-label="Photo reel">
+    <p class="finale-loop-caption">a little reel of us, on repeat</p>
+    <div class="finale-loop-track">
+      <div class="finale-loop-row" id="finale-loop-row">
+        <!-- TODO: replace with real photos at static/img/finale/loop-1..6.jpg (this list is duplicated by JS for a seamless loop) -->
+        <div class="loop-item"><img src="{% static 'img/finale/loop-1.jpg' %}" alt="" onerror="this.closest('.loop-item').classList.add('img-missing')"></div>
+        <div class="loop-item"><img src="{% static 'img/finale/loop-2.jpg' %}" alt="" onerror="this.closest('.loop-item').classList.add('img-missing')"></div>
+        <div class="loop-item"><img src="{% static 'img/finale/loop-3.jpg' %}" alt="" onerror="this.closest('.loop-item').classList.add('img-missing')"></div>
+        <div class="loop-item"><img src="{% static 'img/finale/loop-4.jpg' %}" alt="" onerror="this.closest('.loop-item').classList.add('img-missing')"></div>
+        <div class="loop-item"><img src="{% static 'img/finale/loop-5.jpg' %}" alt="" onerror="this.closest('.loop-item').classList.add('img-missing')"></div>
+        <div class="loop-item"><img src="{% static 'img/finale/loop-6.jpg' %}" alt="" onerror="this.closest('.loop-item').classList.add('img-missing')"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="finale-final-words" aria-label="Final message">
+    <div class="cake" aria-hidden="true">
+      <div class="cake__candle">
+        <div class="cake__flame" id="cake-flame"></div>
+      </div>
+      <div class="cake__layer cake__layer--top"></div>
+      <div class="cake__layer cake__layer--bottom"></div>
+    </div>
+    <p class="finale-tap-hint" id="finale-tap-hint">tap the candle and make a wish 🕯️</p>
+
+    <h2 class="finale-final-title" id="finale-final-title">Happy Birthday, my love.</h2>
+    <p class="finale-final-text">
+      Thank you for saying yes to all of this -- to me, to us, to a whole year of firsts.
+      I can't wait for all the ones still ahead.
+    </p>
+    <p class="finale-final-sign">forever yours 💕</p>
+
+    <a href="{% url 'main_screen' %}" class="btn btn-outline-primary btn-sm finale-back-btn">← Back to the calendar</a>
+  </section>
+
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/finale.js' %}"></script>
+{% endblock %}

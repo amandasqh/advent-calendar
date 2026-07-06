@@ -7,25 +7,83 @@
   padding: 0;
 }
 :root {
-  --green: #0ae448;
-  --black: #0e100f;
-  --white: #fffce1;
-  --lt: #abff84;
-  --grey: #191919;
-  --s75: #bbbaa6;
-  --s50: #7c7c6f;
-  --s25: #42433d;
+  --black:    #000000;
+  --white:    #FFFFFF;
+  --dusty-blue:    #7B9FB8;
+  --dusty-blue-dk: #5F7F96;
+  --warm-brown:    #A67C52;
+  --warm-brown-dk: #8A6038;
+  --blush-pink:    #D4A5A5;
+  --blush-pink-dk: #BD8888;
+  --cream:         #FAF3E9;
+  --beige:         #EFE2CF;
+  --beige-dk:      #E0CFB6;
+  --sage:          #A9C0A0;
+  --lavender:      #C3B6D6;
+  --honey:         #E8C988;
+  --sky:           #BFD9EC;
+  --ink:           #4A4038;
+  --ink-soft:      #6B6056;
+  --paper:         #FFFCF6;
+  --paper-shadow:  rgba(120,96,64,.18);
+  --glow-avail:    rgba(212,165,165,.85);
+  --glow-soft:     rgba(232,201,136,.55);
+  --success:       #9DBE8F;
+
+  --sp1:.4rem; --sp2:.8rem; --sp3:1.2rem; --sp4:1.8rem; --sp5:2.6rem; --sp6:4rem;
+  --rad-sm:10px; --rad-md:18px; --rad-lg:28px;
+  --shadow-paper: 0 10px 30px -8px rgba(120,96,64,.28), 0 2px 6px rgba(120,96,64,.12);
+  --shadow-soft:  0 6px 18px -6px rgba(120,96,64,.22);
   --grad-blue: linear-gradient(114.41deg, #0aa3e4 20.74%, #6bc4ff 65.5%);
-  --grad-orange: linear-gradient(111.45deg, #ff8709 19.42%, #f7bdf8 73.08%);
 }
 
+/* =====================================================================
+   Cursors
+   - Normal (default, whole page): cursor_sm.png
+   - Hover on anything clickable (links, buttons, .btn, form controls):
+     cursor_paw.png
+   - Active/pressed state on those same elements: cursor_paw.png
+   - .table-item (the draggable advent boxes) gets its own hover/active
+     pair further down in main_screen.css, which wins over the rules
+     below on specificity (a class+pseudo beats an element+pseudo), so
+     it doesn't need !important.
+   ===================================================================== */
 body {
   min-height: 100vh;
   margin: 0;
   font-family: "Atkinson Hyperlegible Mono", sans-serif;
   background: radial-gradient(ellipse at 50% 50%, #a0b3e5 0%, #e8fbff 100%);
   color: var(--black);
+  cursor: url("../img/cursor_sm.png") 4 4, auto;
 }
+
+a:hover,
+button:hover,
+.btn:hover,
+[role="button"]:hover,
+input[type="button"]:hover,
+input[type="submit"]:hover,
+select:hover,
+label:hover {
+  cursor: url("../img/cursor_paw.png") 4 4, auto;
+}
+
+a:active,
+button:active,
+.btn:active,
+[role="button"]:active,
+input[type="button"]:active,
+input[type="submit"]:active {
+  cursor: url("../img/cursor_paw.png") 4 4, auto;
+}
+
+a:disabled,
+button:disabled,
+.btn:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
 
 a {
   text-decoration: none;
@@ -44,9 +102,13 @@ a {
     color: var(--white);
 }
 
-.btn-primary:hover {
+.btn-primary:hover,
+.btn-primary:active,
+.btn-primary:focus,
+.btn-primary:focus:active {
     background-color: transparent;
     border-color: #5aa9e6;
+    color: var(--dusty-blue);
 }
 
 .glow{
@@ -59,7 +121,10 @@ a {
     border-color: #5aa9e6;
 }
 
-.btn-outline-primary:hover {
+.btn-outline-primary:hover,
+.btn-outline-primary:active,
+.btn-outline-primary:focus,
+.btn-outline-primary:focus:active {
     background-color: #5aa9e6;
     border-color: #5aa9e6;
 }

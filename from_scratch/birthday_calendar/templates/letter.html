@@ -7,6 +7,67 @@
 {% endblock %}
 
 {% block content %}
+<!-- Letter container with shadow -->
+<section class="letter-page my-5" id="letter-page" aria-label="Opening letter">
+
+  <div class="letter-wrap">
+
+    <div class="tape tape--topleft"  aria-hidden="true"></div>
+    <div class="tape tape--topright" aria-hidden="true"></div>
+
+    <article class="letter-card" id="letter-card" role="article">
+
+      <header class="letter-card__header">
+        <span class="letter-card__date">{% now "F j, Y" %}</span>
+        <h1 class="letter-card__to">Dear Mossy,</h1>
+      </header>
+      <p class="fw-lighter fst-italic">Scroll down...</p>
+      <div class="letter-card__body fw-light d-grid gap-5" id="letter-body">
+        <span></span>
+        <span></span> 
+        <span></span> 
+        <span></span> 
+        <span></span> 
+        <span></span> 
+        <span></span> 
+        <span></span> 
+        <span></span> 
+        <span></span> 
+        <span></span> 
+        <span></span> 
+        <span></span> 
+        <span></span> 
+        <span></span> 
+        <span>
+          <p>This is your special month, and I created something special just for you.</p>
+          <p>I thought, what would touch Mossy's heart more than a simple card and cake?</p>
+          <p>And since you are also learning web development, I thought, why not make a website for Mossy? 💗</p>
+        </span>
+        <span>
+          <p>I have spent a few months working on it, thinking what you might like, and also reflected on our past year together.</p>
+          <p>Every day there will be a surprise waiting for you, so check back every day or whenever you have time.</p>
+          <p>Tell me what you think! I hope you like it.</p>
+        </span>
+        <span>
+          <p>And happy birthday in advance!</p>
+        </span>
+      </div>
+      
+      <footer class="letter-card__footer">
+        <p class="letter-card__sign">with all my love 💕</p>
+      </footer>
+
+    </article>
+
+    <div class="letter-page__nav">
+      <a href="{% url 'main_screen' %}" class="btn btn-primary glow btn-sm m-0" id="letter-continue-btn">
+        Continue →
+      </a>
+    </div>
+
+  </div>
+
+</section>
 {% endblock %}
 
 

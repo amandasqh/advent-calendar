@@ -1,0 +1,300 @@
+.finale-page {
+    position: relative;
+    background: linear-gradient(180deg, #eef6ff 0%, #fbf3ff 45%, #fff8ec 100%);
+    overflow-x: hidden;
+}
+
+.finale-hearts {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5;
+    overflow: hidden;
+}
+.finale-hearts span {
+    position: absolute;
+    bottom: -10%;
+    font-size: 1.2rem;
+    color: rgba(212, 165, 165, 0.75);
+    animation: finaleHeartRise linear infinite;
+}
+@keyframes finaleHeartRise {
+    0% { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0; }
+    10% { opacity: 0.9; }
+    90% { opacity: 0.8; }
+    100% { transform: translateY(-110vh) translateX(20px) rotate(20deg); opacity: 0; }
+}
+
+/* ---------------- Hero ---------------- */
+.finale-hero {
+    min-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 2rem;
+    position: relative;
+    z-index: 2;
+}
+.finale-eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.3em;
+    font-size: 0.8rem;
+    color: var(--dusty-blue-dk);
+    margin-bottom: 0.8rem;
+}
+.finale-hero-title {
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    color: var(--ink);
+    max-width: 20ch;
+}
+.finale-hero-sub {
+    color: var(--ink-soft);
+    margin-top: 0.8rem;
+}
+.finale-scroll-cue {
+    margin-top: 2.5rem;
+    font-size: 1.6rem;
+    color: var(--dusty-blue-dk);
+    animation: finaleBounceDown 1.8s ease-in-out infinite;
+}
+@keyframes finaleBounceDown {
+    0%, 100% { transform: translateY(0); opacity: 0.5; }
+    50% { transform: translateY(10px); opacity: 1; }
+}
+
+/* ---------------- Scrapbook notes ---------------- */
+.finale-scrapbook {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 6vh 1.5rem;
+    display: grid;
+    gap: 8vh;
+    position: relative;
+    z-index: 2;
+}
+.scrap-note {
+    background: var(--paper);
+    padding: 1.6rem 1.8rem;
+    box-shadow: var(--shadow-paper);
+    border-radius: 4px;
+    max-width: 26rem;
+    font-size: 1.15rem;
+    line-height: 1.7;
+    color: var(--ink);
+    position: relative;
+}
+.scrap-note:nth-child(odd) { margin-right: auto; transform: rotate(-2deg); }
+.scrap-note:nth-child(even) { margin-left: auto; transform: rotate(2deg); }
+.scrap-note--tape::before {
+    content: '';
+    position: absolute;
+    top: -14px;
+    left: 50%;
+    transform: translateX(-50%) rotate(-3deg);
+    width: 80px;
+    height: 26px;
+    background: rgba(212, 165, 165, .55);
+    box-shadow: var(--shadow-soft);
+}
+.scrap-note--pin::before {
+    content: '📌';
+    position: absolute;
+    top: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 1.4rem;
+}
+
+/* ---------------- Polaroids ---------------- */
+.finale-polaroids {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 6vh 1.5rem;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(160px, 1fr));
+    gap: 2.4rem 1.6rem;
+    justify-items: center;
+    position: relative;
+    z-index: 2;
+}
+.polaroid {
+    background: white;
+    padding: 0.7rem 0.7rem 1.6rem;
+    box-shadow: var(--shadow-paper);
+    width: min(100%, 240px);
+    text-align: center;
+}
+.polaroid:nth-child(odd) { transform: rotate(-4deg); }
+.polaroid:nth-child(even) { transform: rotate(3deg); }
+.polaroid img {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    background: linear-gradient(135deg, var(--sky), var(--lavender));
+}
+.polaroid.img-missing img { display: none; }
+.polaroid.img-missing::before {
+    content: '📷';
+    display: flex;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.4rem;
+    background: linear-gradient(135deg, var(--sky), var(--lavender));
+}
+.polaroid figcaption {
+    margin-top: 0.6rem;
+    font-family: var(--font-display, inherit);
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+}
+
+/* ---------------- Infinite photo loop ---------------- */
+.finale-loop-section {
+    padding: 6vh 0;
+    position: relative;
+    z-index: 2;
+}
+.finale-loop-caption {
+    text-align: center;
+    color: var(--ink-soft);
+    margin-bottom: 1.2rem;
+}
+.finale-loop-track {
+    overflow: hidden;
+    width: 100%;
+}
+.finale-loop-row {
+    display: flex;
+    gap: 1rem;
+    width: max-content;
+    animation: finaleLoopScroll 26s linear infinite;
+}
+.loop-item {
+    width: 220px;
+    height: 150px;
+    flex-shrink: 0;
+    border-radius: 1rem;
+    overflow: hidden;
+    box-shadow: var(--shadow-soft);
+}
+.loop-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.loop-item.img-missing {
+    display: grid;
+    place-items: center;
+    background: linear-gradient(135deg, var(--beige), var(--sky));
+    font-size: 1.6rem;
+}
+.loop-item.img-missing::before { content: '🌷'; }
+@keyframes finaleLoopScroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+
+/* ---------------- Final words + candle ---------------- */
+.finale-final-words {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 6vh 1.5rem;
+    position: relative;
+    z-index: 2;
+}
+
+.cake {
+    position: relative;
+    width: 160px;
+    height: 120px;
+    margin-bottom: 0.6rem;
+}
+.cake__layer {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 14px;
+    background: linear-gradient(180deg, #f7c9d8 0%, #f3a9c2 100%);
+    box-shadow: inset 0 -6px 0 rgba(0,0,0,0.06);
+}
+.cake__layer--bottom { bottom: 0; width: 160px; height: 55px; }
+.cake__layer--top { bottom: 48px; width: 120px; height: 48px; background: linear-gradient(180deg, #fff1e6 0%, #ffe0c2 100%); }
+.cake__candle {
+    position: absolute;
+    top: -34px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 8px;
+    height: 34px;
+    background: repeating-linear-gradient(180deg, #7B9FB8 0 6px, #FAF3E9 6px 12px);
+    border-radius: 3px;
+    cursor: url("../img/cursor_paw.png"), pointer;
+}
+.cake__flame {
+    position: absolute;
+    top: -16px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 10px;
+    height: 16px;
+    background: radial-gradient(circle at 50% 30%, #fff6c8 0%, #ffb648 55%, #ff7a3d 100%);
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    animation: flicker 0.6s ease-in-out infinite alternate;
+    transform-origin: bottom center;
+}
+.cake__flame.is-blown-out {
+    animation: none;
+    opacity: 0;
+    transform: translateX(-50%) scale(0.2);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+@keyframes flicker {
+    0% { transform: translateX(-50%) scale(1) rotate(-3deg); }
+    100% { transform: translateX(-50%) scale(1.12) rotate(3deg); }
+}
+.finale-tap-hint {
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+    margin-bottom: 1.6rem;
+    transition: opacity 0.3s ease;
+}
+.finale-tap-hint.is-hidden { opacity: 0; }
+
+.finale-final-title {
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    color: var(--ink);
+    opacity: 0;
+    transform: translateY(14px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.finale-final-title.is-revealed { opacity: 1; transform: translateY(0); }
+
+.finale-final-text {
+    max-width: 34rem;
+    color: var(--ink-soft);
+    line-height: 1.8;
+    margin-top: 0.8rem;
+}
+.finale-final-sign {
+    font-family: var(--font-display, inherit);
+    color: var(--dusty-blue-dk);
+    margin-top: 0.6rem;
+}
+.finale-back-btn { margin-top: 2rem; }
+
+[data-reveal] {
+    opacity: 0;
+    transform: translateY(30px);
+}
+
+@media (max-width: 700px) {
+    .finale-polaroids { grid-template-columns: 1fr 1fr; }
+}
