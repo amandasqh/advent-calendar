@@ -59,11 +59,9 @@ document.addEventListener('DOMContentLoaded', () => {
             duration: 0.15
         }, 0.05);
 
-        // Softer, calmer line-by-line reveal: no scale/bounce, just a gentle
-        // fade from dim to full ink color. Spread evenly across a fixed
-        // fraction of the FULL scroll range (not each paragraph's own
-        // viewport position) so every line is guaranteed to finish revealing
-        // well before the bottom of the page, however many lines there are.
+        // Reveal spread across a fixed fraction of the scroll range (not each
+        // paragraph's own viewport position) so every line finishes by the
+        // bottom of the page regardless of letter length.
         if (paragraphs.length) {
             var revealStart = 0.3;
             var revealEnd = 0.85;

@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Countdown
     // -----------------------------------------------------------------
     const countdown = document.getElementById('countdown');
-    const targetDate = new Date('2026-07-24T00:00:00');
+    const targetDate = new Date('2026-07-24T00:00:00+08:00');
 
     function animateDigit(id, value) {
         const el = document.getElementById(id);
@@ -136,11 +136,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const cascade = 34;
 
         // Saved positions are absolute pixels from whatever viewport they were
-        // dragged on -- on a much narrower/shorter surface (e.g. desktop ->
-        // mobile) they can land partly or fully outside the visible table,
-        // hidden by its `overflow: hidden`. Clamp into the CURRENT surface
-        // bounds so a saved item is always at least fully on-canvas, without
-        // otherwise touching its position (doesn't "fight" the drag).
+        // dragged on, so clamp into the CURRENT surface bounds -- otherwise a
+        // desktop-dragged item can land off-canvas on a narrower one.
         const maxX = Math.max(4, rect.width - itemW - 4);
         const maxY = Math.max(4, rect.height - itemH - 4);
 

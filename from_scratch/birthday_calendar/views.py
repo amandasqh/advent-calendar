@@ -1,6 +1,7 @@
 import json
 import os
-from datetime import date
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
 
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
@@ -22,12 +23,15 @@ START_DATE = date(2026, 7, 1)
 # Set to True while you're building/previewing to unlock every day regardless
 # of the real date (so you can click through all 24 surprises). Set back to
 # False before sending the link to anyone!
-DEBUG_MODE = True
+DEBUG_MODE = False
+
+
+LOCAL_TZ = ZoneInfo("Asia/Singapore")
 
 
 def _today():
     """Wrapped so it's trivial to fake/test a specific date if ever needed."""
-    return date.today()
+    return datetime.now(LOCAL_TZ).date()
 
 
 def day_index_for(today=None):

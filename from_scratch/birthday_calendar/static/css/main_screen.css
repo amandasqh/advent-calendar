@@ -884,11 +884,8 @@
     min-height: 0px;
     max-height: 90vh;
     z-index: 1000;
-    /* clip-path is NOT transitioned: it always has to match whatever
-       the player is rendering *right now* (see the postMessage inset
-       above). Animating it smoothly lags behind the player's own
-       open/close transition, visibly slicing the modal in half for the
-       first ~150-250ms of a big size jump (e.g. mini pill -> playlist). */
+    /* clip-path is intentionally not transitioned -- it must always match
+       what's rendered right now, or it visibly clips the player mid-open. */
     transition: height 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
     pointer-events: none;
     /* Belt-and-suspenders on top of pointer-events: the iframe's box has

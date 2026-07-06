@@ -1709,12 +1709,9 @@
             document.addEventListener('click', () => setTimeout(reportHeight, 50));
             setTimeout(reportHeight, 300);
             setTimeout(reportHeight, 1200);
-            // #music-player's collapse/expand toggle slides it via a 0.5s
-            // (overshooting) transform transition -- the 50ms click-driven
-            // reportHeight() above fires well before that settles, so it
-            // reports a mid-slide rect. Correct it once the slide actually
-            // finishes, or the clip stays locked onto a stale, ~collapsed
-            // inset even though the pill is now fully open on screen.
+            // The 50ms click-driven reportHeight() above fires mid-slide
+            // during the collapse/expand toggle's 0.5s transition -- correct
+            // it once the slide actually finishes.
             target.addEventListener('transitionend', (e) => {
                 if (e.propertyName === 'transform') reportHeight();
             });

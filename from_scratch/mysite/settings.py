@@ -6,11 +6,7 @@ from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Loads variables from a local `.env` file (see `.env.example`) into
-# os.environ, for convenient local `runserver` testing without having to
-# `export` each one by hand. Render never has a `.env` file (it's
-# gitignored -- never deployed) and sets real environment variables
-# directly, so this is a no-op in production.
+# No-op in production: `.env` is gitignored and never deployed to Render.
 load_dotenv(BASE_DIR / ".env")
 
 # ---------------------------------------------------------------------------
