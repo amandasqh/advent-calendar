@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Countdown
     // -----------------------------------------------------------------
     const countdown = document.getElementById('countdown');
-    const targetDate = new Date('2026-07-28T00:00:00');
+    const targetDate = new Date('2026-07-24T00:00:00');
 
     function animateDigit(id, value) {
         const el = document.getElementById(id);
@@ -129,10 +129,20 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!surface) return;
         const rect = surface.getBoundingClientRect();
         const itemW = boxes[0] ? boxes[0].getBoundingClientRect().width : 120;
+        const itemH = boxes[0] ? boxes[0].getBoundingClientRect().height : 150;
         const leftBaseX = 16;
         const rightBaseX = Math.max(leftBaseX, rect.width - itemW - 16);
         const baseY = 24;
         const cascade = 34;
+
+        // Saved positions are absolute pixels from whatever viewport they were
+        // dragged on -- on a much narrower/shorter surface (e.g. desktop ->
+        // mobile) they can land partly or fully outside the visible table,
+        // hidden by its `overflow: hidden`. Clamp into the CURRENT surface
+        // bounds so a saved item is always at least fully on-canvas, without
+        // otherwise touching its position (doesn't "fight" the drag).
+        const maxX = Math.max(4, rect.width - itemW - 4);
+        const maxY = Math.max(4, rect.height - itemH - 4);
 
         boxes.forEach((box) => {
             const number = parseInt(box.dataset.number, 10);
@@ -144,6 +154,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (hasSaved) {
                 x = parseFloat(box.style.getPropertyValue('--x')) || 0;
                 y = parseFloat(box.style.getPropertyValue('--y')) || 0;
+                x = Math.min(Math.max(x, 4), maxX);
+                y = Math.min(Math.max(y, 4), maxY);
             } else {
                 x = (isLeft ? leftBaseX : rightBaseX) + (stackIndex % 3) * 6;
                 y = baseY + stackIndex * cascade;
@@ -255,6 +267,22 @@ document.addEventListener('DOMContentLoaded', () => {
             image: box.dataset.stampImage || '',
             date: box.dataset.stampDate || '',
         };
+    }
+
+    // Boxes that were already opened in a PREVIOUS session/device should
+    // show up in the mailbox immediately on load -- without replaying the
+    // "new stamp!" popup or confetti, since nothing new just happened.
+    function restoreCollectedStampsFromServer() {
+        boxes.forEach((box) => {
+            if (box.dataset.stamp === 'true' && box.dataset.state === 'opened') {
+                addStampToCollection({
+                    title: box.dataset.stampTitle || 'Little stamp',
+                    body: box.dataset.stampBody || 'A sweet keepsake for your collection.',
+                    image: box.dataset.stampImage || '',
+                    date: box.dataset.stampDate || '',
+                });
+            }
+        });
     }
 
     function releasePendingStampIfAny() {
@@ -428,13 +456,21 @@ document.addEventListener('DOMContentLoaded', () => {
         if (giftRevealed) return;
         giftPressed = true;
         giftLastPoint = pointFromEvent(e);
+        // Give immediate feedback the instant they press down, rather than
+        // waiting for them to also successfully drag -- this is the bit
+        // that felt "broken" before: nothing happened until a big enough
+        // movement registered, so the first press or two felt dead.
+        addGiftShake(6);
     }
     function onGiftPointerMove(e) {
         if (!giftPressed || giftRevealed) return;
         const point = pointFromEvent(e);
         if (giftLastPoint) {
             const dist = Math.hypot(point.x - giftLastPoint.x, point.y - giftLastPoint.y);
-            addGiftShake(Math.min(dist * 0.18, 7));
+            // A floor on top of the distance-based gain, so even small,
+            // slow, "warming up" movements clearly move the meter instead
+            // of quietly losing to the decay timer.
+            addGiftShake(Math.min(Math.max(dist * 0.35, 1.5), 14));
         }
         giftLastPoint = point;
     }
@@ -473,7 +509,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         giftDecayInterval = setInterval(() => {
             if (giftRevealed) return;
-            giftMeter = Math.max(0, giftMeter - 3);
+            giftMeter = Math.max(0, giftMeter - 1.5);
             if (giftShakeFill) giftShakeFill.style.width = `${giftMeter}%`;
         }, 120);
     }
@@ -737,7 +773,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const mapModal = document.getElementById('map-modal');
     wireBackdropClose(mapModal, releasePendingStampIfAny);
 
-    // TODO: nudge lat/lng, colors, or notes as needed.
     const MAP_MARKERS = [
         { name: 'Kuala Lumpur', note: 'Visited 💚', coords: [3.139, 101.6869], style: { fill: '#9DBE8F' } },
         { name: 'Penang', note: 'Visited 💚', coords: [5.4141, 100.3288], style: { fill: '#9DBE8F' } },
@@ -957,32 +992,80 @@ document.addEventListener('DOMContentLoaded', () => {
                 maybeQueueStamp(box);
                 markOpenedLocally(box);
                 apiPost('/api/open-box/', { number: parseInt(box.dataset.number, 10) });
+                if (parseInt(box.dataset.number, 10) === 6) {
+                    revealMusicIframeLive();
+                }
             }
         });
     });
 
     // -----------------------------------------------------------------
-    // Music player iframe: sized dynamically by the player itself so it
-    // never blocks clicks on the rest of the page.
+    // Music player iframe: sized AND clipped dynamically by the player
+    // itself so it never blocks clicks on the rest of the page.
     //
-    // Important: when the playlist/settings panel opens *inside* the
-    // iframe, we can't trust a pixel height computed there -- the iframe
-    // tells us "I need to be expanded" and the PARENT decides how tall
-    // that means, using its own (real) viewport height. Measuring inside
-    // the iframe is circular: its window.innerHeight is capped by
-    // whatever height we've already given the iframe element.
+    // Two things the child tells us:
+    //  - 'music-player-resize': how tall the iframe box itself needs to
+    //    be so its content isn't visually clipped (expanded state is
+    //    computed here, relative to OUR real viewport, since the child's
+    //    own window.innerHeight is circular -- capped by whatever height
+    //    we've already given it).
+    //  - 'music-player-clip': a pixel inset (top/right/bottom/left) marking
+    //    which part of that box is actually visible player content. We
+    //    turn that into a CSS clip-path so pointer-events: auto only
+    //    applies to those pixels -- the rest of the (necessarily
+    //    oversized) iframe rectangle becomes click-through, so boxes
+    //    sitting underneath the empty margins stay clickable.
     // -----------------------------------------------------------------
     const musicIframe = document.getElementById('music-iframe');
+    let musicExpanded = false;
+    let musicBounceInterval = null;
+
+    function revealMusicIframeLive() {
+        if (!musicIframe || !musicIframe.classList.contains('is-locked')) return;
+        musicIframe.classList.remove('is-locked');
+        if (window.gsap) {
+            gsap.fromTo(musicIframe,
+                { opacity: 0, scale: 0.3 },
+                { opacity: 1, scale: 1, duration: 0.7, ease: 'back.out(1.7)', delay: 0.3 });
+        }
+        startMusicIdleBounce();
+    }
+
+    function startMusicIdleBounce() {
+        if (!musicIframe || musicBounceInterval) return;
+        musicBounceInterval = setInterval(() => {
+            if (musicExpanded) return; // don't jiggle it while someone's using it
+            musicIframe.classList.remove('is-bouncing');
+            void musicIframe.offsetWidth; // restart the CSS animation
+            musicIframe.classList.add('is-bouncing');
+        }, 14000);
+    }
+
     if (musicIframe) {
         window.addEventListener('message', (event) => {
-            if (!event.data || event.data.type !== 'music-player-resize') return;
-            if (event.data.expanded) {
-                musicIframe.style.height = 'min(680px, 90vh)';
-            } else {
-                musicIframe.style.height = `${event.data.height}px`;
+            if (!event.data) return;
+
+            if (event.data.type === 'music-player-resize') {
+                musicExpanded = !!event.data.expanded;
+                if (event.data.expanded) {
+                    musicIframe.style.height = 'min(680px, 90vh)';
+                } else {
+                    musicIframe.style.height = `${event.data.height}px`;
+                }
+                musicIframe.classList.add('is-ready');
             }
-            musicIframe.classList.add('is-ready');
+
+            if (event.data.type === 'music-player-clip' && event.data.inset) {
+                const { top, right, bottom, left } = event.data.inset;
+                musicIframe.style.clipPath = `inset(${top}px ${right}px ${bottom}px ${left}px round 12px)`;
+            }
         });
+
+        if (!musicIframe.classList.contains('is-locked')) {
+            // Already unlocked on a previous visit -- show up right away,
+            // just with the idle bounce (no big entrance replay).
+            startMusicIdleBounce();
+        }
     }
 
     // -----------------------------------------------------------------
@@ -991,6 +1074,7 @@ document.addEventListener('DOMContentLoaded', () => {
     layoutStackPositions();
     initDraggable();
     updateProgress();
+    restoreCollectedStampsFromServer();
     renderStampCollection();
     if (stampCount) stampCount.textContent = collectedStamps.length;
 

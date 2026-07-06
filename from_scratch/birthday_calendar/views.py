@@ -1,8 +1,10 @@
 import json
+import os
 from datetime import date
 
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
+from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.views.decorators.http import require_POST
 
 from .models import SiteState
@@ -11,7 +13,7 @@ from .models import SiteState
 # CONFIG
 # ---------------------------------------------------------------------------
 
-BIRTHDAY = date(2026, 7, 28)
+BIRTHDAY = date(2026, 7, 24)
 TOTAL_BOXES = 24
 # Calendar starts 24 days before the birthday -> box `n` becomes available on
 # START_DATE + (n-1) days.
@@ -49,7 +51,7 @@ BOX_CONTENT = [
         "title": "Favourite photos of you",
         "type": "photo",
         "emoji": "📷",
-        "body": "A few of my favourite photos of you.",
+        "body": "A few of my favourite photos of you where I think you look cutie",
         "images": ["img/photos/fav_photo1.jpg", "img/photos/fav_photo2.jpg", "img/photos/fav_photo3.jpg"],
     },
     {
@@ -70,21 +72,21 @@ BOX_CONTENT = [
         "title": "Movie date + bonus points coupon",
         "type": "coupon",
         "emoji": "🎬",
-        "body": "A movie date, plus a few bonus points to spend however you like.",
+        "body": "A movie date and some bonus points for being such a caring and loving boyfie!",
         "coupons": ["img/coupons/coupon_movienight.png", "img/coupons/coupon_bonuspts.png"],
     },
     {
         "title": "Stain remover pen",
         "type": "gift",
         "emoji": "🖊️",
-        "body": "For all your snacking accidents. You know you needed this.",
+        "body": "For all of our little accidents. One for each of us!",
         # "image": "img/gifts/stain_pen.png",
     },
     {
         "title": "Playlist unlocked!",
         "type": "others",
         "emoji": "🎧",
-        "body": "A playlist of songs that remind me of you. Check the music player!",
+        "body": "A playlist of songs that remind me of you or that you mentioned you liked. Check the music player!",
         "image": "img/music.png",
     },
     {
@@ -94,8 +96,10 @@ BOX_CONTENT = [
         "body": "",
         "letter": [
             "Dear Mossy,",
-            "I don't say this enough, but I'm so grateful for the little everyday things -- the silly voice notes, the way you save snacks for me, the way you try even when you're tired.",
-            "Thank you for being exactly who you are.",
+            "I don't say this enough, but I'm so grateful for the little everyday things -- the silly voice notes, the way you save snacks for me, the way you care for me when I'm healthy and ill.",
+            "Thank you for staying by my side and listening to me.",
+            "Thank you for trying your best even on days you are tired.",
+            "Thank you for everything that you do.",
         ],
     },
     {
@@ -109,7 +113,7 @@ BOX_CONTENT = [
         "title": "Mossy snack box",
         "type": "gift",
         "emoji": "🍬",
-        "body": "A little box of your favourite snacks.",
+        "body": "A little box of your favourite snacks. Don't finish it all in one go but remember to eat it! Please 🥺",
         # "image": "img/gifts/snack_box.png",
     },
     {
@@ -117,15 +121,13 @@ BOX_CONTENT = [
         "type": "bucketlist",
         "emoji": "📝",
         "body": "Little dreams for us, in no particular order. Tap the ones you're most excited for.",
-        # TODO: edit freely -- add/remove/reorder as many as you like.
         "bucket_items": [
-            {"emoji": "🗾", "text": "Road trip somewhere in Japan"},
+            {"emoji": "🗾", "text": "Road trip in New Zealand / Korea / Japan"},
             {"emoji": "🌌", "text": "Chase the Northern Lights"},
-            {"emoji": "🥐", "text": "Learn to bake croissants together"},
-            {"emoji": "🐱", "text": "Adopt a cat"},
+            {"emoji": "🥐", "text": "Bake bread together"},
             {"emoji": "🏡", "text": "Decorate our first home together"},
-            {"emoji": "🎢", "text": "A proper theme-park day, no adulting allowed"},
             {"emoji": "📸", "text": "Fill a whole photo album, printed, not digital"},
+            {"emoji": "🚴", "text": "Cycle together"},
             {"emoji": "🍜", "text": "Eat our way through a new country's street food"},
         ],
     },
@@ -133,14 +135,21 @@ BOX_CONTENT = [
         "title": "Favourite photos of us",
         "type": "photo",
         "emoji": "📸",
-        "body": "Some of my favourite photos of us together.",
+        "body": "Some of my favourite photos of us together. Do you remember when and where we took them?",
         "images": ["img/photos/fav_photo_us1.jpeg", "img/photos/fav_photo_us2.jpeg", "img/photos/fav_photo_us3.jpeg"],
+    },
+    {
+        "title": "Bakes",
+        "type": "gift",
+        "emoji": "🍰",
+        "body": "Something baked with love.",
+        # "image": "img/gifts/bakes.png",
     },
     {
         "title": "Free pass!",
         "type": "coupon",
         "emoji": "🕊️",
-        "body": "Redeemable for three argument-free days, whenever you need it.",
+        "body": "Redeemable for three argument-free days, whenever you need it. Promise mandi won't be upset!",
         "coupons": ["img/coupons/coupon_freepass.png"],
     },
     {
@@ -157,8 +166,11 @@ BOX_CONTENT = [
         "body": "",
         "letter": [
             "Dear Mossy,",
-            "I've watched you grow so much this year -- more confident, more open, more you.",
-            "It's been an honour to watch it happen up close.",
+            "I've watched you grow so much this year -- more active, more open, more you.",
+            "I've watched it happen up close, and it's amazing how many new things we discovered and explored together!",
+            "Thank you for being vulnerable to me and letting me into your heart.",
+            "I hope this lets you know how much you mean to me, even when my words and actions sometimes say otherwise.",
+            "To countless more lessons and experiences to go through together!",
         ],
     },
     {
@@ -169,21 +181,23 @@ BOX_CONTENT = [
         "coupons": ["img/coupons/coupon_datenight_1.png"],
     },
     {
-        "title": "Favourite story",
+        "title": "Favourite memory",
         "type": "letter",
         "emoji": "📖",
         "body": "",
         "letter": [
             "Dear Mossy,",
-            "My favourite story of us is still the small, ordinary one -- the day you least expected it, and somehow it became one of my favourite memories.",
-            "I'll tell you the rest in person.",
+            "My favourite memory of us is still the small, ordinary ones -- from how you would hold in your breath when I fart to how we tease each other about our quirks.",
+            "I still feel the cruise trip we had was the most memorable I've ever had, and I think you might feel the same!",
+            "All the food we ate, sights we saw, shows we watched -- it was so much fun, and also such a good break from work.",
+            "Thanks for arranging these, I've loved every bit of them.",
         ],
     },
     {
         "title": "Socks",
         "type": "gift",
         "emoji": "🧦",
-        "body": "Warm feet, warm heart.",
+        "body": "Warm feet, warm heart. No rashies!",
         # "image": "img/gifts/socks.png",
     },
     {
@@ -196,28 +210,21 @@ BOX_CONTENT = [
         "title": "Ring holder necklace",
         "type": "gift",
         "emoji": "💍",
-        "body": "So it's always close, even when your hands are busy.",
+        "body": "I know how much you cherish your rings. I've gotten this for you so they are always safe and close to your heart, even when your hands and mind are busy.",
         # "image": "img/gifts/ring_holder.png",
     },
     {
         "title": "Card",
         "type": "gift",
         "emoji": "💌",
-        "body": "A handmade card with printed photos, just for you.",
+        "body": "A handmade card just for you.",
         # "image": "img/gifts/card.png",
     },
     {
-        "title": "Bakes",
-        "type": "gift",
-        "emoji": "🍰",
-        "body": "Something baked with love.",
-        # "image": "img/gifts/bakes.png",
-    },
-    {
-        "title": "Yoga mat",
+        "title": "Yoga towel",
         "type": "gift",
         "emoji": "🧘",
-        "body": "For stretching, breathing, and everything in between.",
+        "body": "To keep you safe as we stretch and breathe together.",
         # "image": "img/gifts/yoga_mat.png",
     },
     {
@@ -327,6 +334,7 @@ def home(request):
     return render(request, "home.html")
 
 
+@xframe_options_sameorigin
 def music_player(request):
     return render(request, "components/music_player.html")
 
@@ -463,3 +471,28 @@ def api_get_state(request):
         "bucket_checked": sorted(_get_bucket_checked()),
         "today_index": day_index_for(),
     })
+
+
+# ---------------------------------------------------------------------------
+# OPS: health check (for Render) + a reset endpoint.
+#
+# Free-tier Render web services don't get shell/SSH access, so there's no
+# `python manage.py shell` to clear SiteState after a test run. This gives
+# you a URL-based escape hatch instead: set RESET_TOKEN as an environment
+# variable in Render's dashboard, then visit
+#   https://<your-app>.onrender.com/api/reset/?token=<that value>
+# to wipe all progress and start over. Leave RESET_TOKEN unset locally and
+# this endpoint just 404s-equivalent (403) for everyone, including you.
+# ---------------------------------------------------------------------------
+
+def healthz(request):
+    return JsonResponse({"status": "ok"})
+
+
+def api_reset_state(request):
+    reset_token = os.environ.get("RESET_TOKEN")
+    if not reset_token or request.GET.get("token") != reset_token:
+        return JsonResponse({"ok": False, "error": "forbidden"}, status=403)
+
+    SiteState.objects.all().delete()
+    return JsonResponse({"ok": True, "message": "All progress has been reset."})

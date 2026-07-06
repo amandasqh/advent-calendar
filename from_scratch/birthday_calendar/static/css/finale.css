@@ -18,6 +18,7 @@
     color: rgba(212, 165, 165, 0.75);
     animation: finaleHeartRise linear infinite;
 }
+
 @keyframes finaleHeartRise {
     0% { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0; }
     10% { opacity: 0.9; }
@@ -171,11 +172,11 @@
     display: flex;
     gap: 1rem;
     width: max-content;
-    animation: finaleLoopScroll 26s linear infinite;
+    animation: finaleLoopScroll 50s linear infinite;
 }
 .loop-item {
-    width: 220px;
-    height: 150px;
+    width: auto;
+    height: 250px;
     flex-shrink: 0;
     border-radius: 1rem;
     overflow: hidden;
@@ -184,7 +185,7 @@
 .loop-item img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
 }
 .loop-item.img-missing {
     display: grid;
@@ -297,4 +298,8 @@
 
 @media (max-width: 700px) {
     .finale-polaroids { grid-template-columns: 1fr 1fr; }
+}
+
+#final-img {
+    width: 50%;
 }

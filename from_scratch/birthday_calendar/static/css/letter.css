@@ -15,9 +15,16 @@
 .letter-card__date{font-family:var(--font-display);font-size:.85rem;
   color:var(--dusty-blue-dk);letter-spacing:.06em}
 .letter-card__to{margin:0;font-size:clamp(1.6rem,4vw,2.1rem)}
-.letter-card__body{font-size:3rem;color:var(--ink)}
-.letter-card__body p{margin-bottom:var(--sp3); padding-bottom:var(--sp6);}
+.letter-card__body{display:grid;gap:var(--sp4);
+  font-size:clamp(1.35rem, 3.6vw, 1.9rem);line-height:1.5;color:var(--ink)}
+.letter-card__body p{margin:0}
 .letter-card__footer{margin-top:var(--sp4);text-align:right}
 .letter-card__sign{font-family:var(--font-display);font-size:1.2rem;
   color:var(--dusty-blue-dk);margin:0}
 .letter-page__nav{display:flex;justify-content:center;margin-top:var(--sp4)}
+
+@media (max-width: 480px) {
+  .letter-card{padding:var(--sp3)}
+  .letter-page{padding:var(--sp3) var(--sp2)}
+  .letter-card__body{font-size:clamp(1.15rem, 5.5vw, 1.5rem)}
+}

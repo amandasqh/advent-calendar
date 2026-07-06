@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     var wrap = document.querySelector('.letter-wrap');
     var body = document.getElementById('letter-body');
     var nav = document.querySelector('.letter-page__nav');
-    var paragraphs = body ? body.querySelectorAll('p') : [];
+    var paragraphs = body ? Array.from(body.querySelectorAll('p')) : [];
     var tapes = document.querySelectorAll('.tape');
     var continueBtn = document.getElementById('letter-continue-btn');
 
@@ -35,7 +35,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         gsap.set(body, { opacity: 0, y: 48 });
-        gsap.set(paragraphs, { opacity: 0, y: 32 });
         gsap.set(nav, { opacity: 0, y: 24 });
 
         gsap.timeline({
@@ -55,18 +54,12 @@ document.addEventListener('DOMContentLoaded', () => {
             opacity: 1,
             y: 0,
             ease: 'power2.out'
-        }, 0.18)
-        .to(paragraphs, {
-            opacity: 1,
-            y: 0,
-            stagger: 0.16,
-            ease: 'power2.out'
-        }, 0.22)
+        }, 0.06)
         .to(nav, {
             opacity: 1,
             y: 0,
             ease: 'power2.out'
-        }, 0.9);
+        }, 0.94);
 
         gsap.to(card, {
             yPercent: -4,
@@ -77,7 +70,36 @@ document.addEventListener('DOMContentLoaded', () => {
                 end: 'bottom bottom',
                 scrub: 1
             }
-        }); 
+        });
+    }
+
+    // -----------------------------------------------------------------
+    // Karaoke-style line reveal: each paragraph starts small/dim, then
+    // pops into an accent color at full size as it scrolls into view --
+    // like a lyric being "sung" as you reach it -- before settling into
+    // its normal readable color. Scrolling back up un-reveals it again,
+    // so the highlight always tracks where you actually are in the letter
+    // instead of firing everything within one narrow chunk of scroll.
+    // -----------------------------------------------------------------
+    if (window.gsap && window.ScrollTrigger && paragraphs.length) {
+        gsap.set(paragraphs, { opacity: 0.2, scale: 0.92, color: 'var(--ink-soft)' });
+
+        paragraphs.forEach((p) => {
+            var pop = gsap.timeline({ paused: true })
+                .to(p, { opacity: 1, scale: 1.08, color: 'var(--blush-pink-dk)', duration: 0.35, ease: 'back.out(2)' })
+                .to(p, { scale: 1, color: 'var(--ink)', duration: 0.3, ease: 'power2.out' });
+
+            ScrollTrigger.create({
+                trigger: p,
+                start: 'top 75%',
+                end: 'bottom 45%',
+                onEnter: function () { pop.play(0); },
+                onEnterBack: function () { pop.play(0); },
+                onLeaveBack: function () {
+                    gsap.to(p, { opacity: 0.2, scale: 0.92, color: 'var(--ink-soft)', duration: 0.3, ease: 'power2.out' });
+                },
+            });
+        });
     }
 
     if (window.gsap && continueBtn) {

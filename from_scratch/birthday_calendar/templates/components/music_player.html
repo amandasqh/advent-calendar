@@ -370,7 +370,8 @@
         }
         .time-display { font-size: 0.7rem; color: var(--secondary-text); min-width: 32px; text-align: center; transition: color 0.4s ease; }
 
-        .player-controls { display: flex; justify-content: space-between; align-items: center; }
+        .player-controls { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; row-gap: 6px; }
+        .player-buttons { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; row-gap: 6px; flex: 1 1 auto; }
         .player-controls button { background: none; border: none; color: var(--secondary-text); transition: transform 0.2s ease, color 0.4s ease; position: relative; font-size: 0.8rem; }
         .player-controls button:hover { color: var(--primary-text); transform: scale(1.15); }
         
@@ -406,7 +407,7 @@
             background: var(--primary-text);
             margin-top: -4px;
             opacity: 1;
-            cursor: url("../../static/img/cursor_grab.png") 4 4, grab;
+            cursor: url("../../static/img/cursor_paw.png") 4 4, grab;
             transition: transform 0.1s;
         }
         input[type=range].grabbing::-webkit-slider-thumb { cursor: url("../../static/img/cursor_grabbing.png") 4 4, grabbing; transform: scale(1.2); }
@@ -658,7 +659,7 @@
                         <button id="volume-btn" title="Volume" aria-label="Mute/Unmute Volume"><i class="fas fa-volume-down"></i></button>
                         <input type="range" id="volume-slider-input" min="0" max="1" step="0.01" value="0.2" aria-label="Volume control">
                     </div>
-                    <div style="display:flex; align-items:center; gap: 8px;">
+                    <div class="player-buttons">
                          <button id="like-btn" title="Like Song" aria-label="Like this song"><i class="far fa-heart"></i></button>
                         <button id="prev-btn" title="Previous" aria-label="Previous Song"><i class="fas fa-backward"></i></button>
                         <button id="play-pause-btn" title="Play/Pause" aria-label="Play or Pause" aria-pressed="false"><i class="fas fa-play"></i></button>
@@ -1610,34 +1611,85 @@
         });
 
         // ---------------------------------------------------------------
-        // Report our real height to the parent page so the wrapping
-        // <iframe id="music-iframe"> can size itself to fit (instead of a
-        // fixed height that either clips the player or blocks clicks on
-        // the page behind it).
+        // Report our real size to the parent page so the wrapping
+        // <iframe id="music-iframe"> can size itself to fit AND clip its
+        // own hit-test area to just the visible player/panel.
+        //
+        // Why clipping matters: the iframe element's box is necessarily
+        // wider/taller than the little player pill (it has to span room
+        // for the expanded playlist too). If we just leave the whole box
+        // clickable (pointer-events: auto), the transparent margin around
+        // the pill still swallows clicks meant for things on the page
+        // behind it. Sending back an inset -- and having the parent turn
+        // it into a CSS clip-path -- keeps clicks working everywhere
+        // except the pixels the player actually occupies.
         // ---------------------------------------------------------------
         (function () {
             const target = document.getElementById('music-player') || document.body;
             const playlistModal = document.getElementById('playlist-modal');
             const settingsModal = document.getElementById('settings-modal');
 
-            function isExpanded() {
-                return (playlistModal && playlistModal.classList.contains('show')) ||
-                       (settingsModal && settingsModal.classList.contains('show'));
+            function activeModal() {
+                if (playlistModal && playlistModal.classList.contains('show')) return playlistModal;
+                if (settingsModal && settingsModal.classList.contains('show')) return settingsModal;
+                return null;
             }
 
             function reportHeight() {
-                if (isExpanded()) {
-                    // Don't try to compute a pixel height in here -- this
+                const modal = activeModal();
+                const expanded = !!modal;
+
+                if (expanded) {
+                    // Don't try to compute a pixel height here -- this
                     // window's own innerHeight is capped by whatever height
                     // the parent has already given the iframe, which is
-                    // circular. Just tell the parent "I'm expanded" and let
-                    // it size us relative to the real page viewport.
+                    // circular. Tell the parent "I'm expanded" and let it
+                    // size us relative to the real page viewport; our
+                    // resize listener below re-measures once that lands.
                     window.parent.postMessage({ type: 'music-player-resize', expanded: true }, '*');
-                    return;
+                } else {
+                    // IMPORTANT: don't use rect.top here. #music-player is
+                    // `position: fixed; bottom: 10px`, so rect.top is
+                    // ALWAYS "current viewport height minus ~10px minus
+                    // pill height" -- it's a function of the height we
+                    // already gave the iframe, not of what height it
+                    // actually needs. Using it here just reproduces
+                    // whatever height the iframe currently has (often
+                    // still the tall "expanded" one) instead of shrinking
+                    // back down. The one thing that's NOT circular is the
+                    // pill's own CSS bottom-offset, which stays constant
+                    // regardless of viewport size.
+                    const rect = target.getBoundingClientRect();
+                    const bottomOffset = parseFloat(getComputedStyle(target).bottom) || 10;
+                    const height = Math.ceil(rect.height + bottomOffset + 16); // small buffer
+                    window.parent.postMessage({ type: 'music-player-resize', height: height, expanded: false }, '*');
                 }
-                const rect = target.getBoundingClientRect();
-                const height = Math.ceil(rect.height + rect.top + 16); // small buffer
-                window.parent.postMessage({ type: 'music-player-resize', height: height, expanded: false }, '*');
+
+                // Best-effort inset based on CURRENT viewport size. If the
+                // parent just resized us because `expanded` flipped, this
+                // will be stale for one frame -- the window "resize"
+                // listener below fires right after and sends a corrected
+                // inset once our own viewport has actually grown/shrunk.
+                const pad = 8;
+                const vw = document.documentElement.clientWidth;
+                const vh = document.documentElement.clientHeight;
+                const rects = [target.getBoundingClientRect()];
+                if (modal) rects.push(modal.getBoundingClientRect());
+
+                const top = Math.min(...rects.map((r) => r.top));
+                const left = Math.min(...rects.map((r) => r.left));
+                const right = Math.max(...rects.map((r) => r.right));
+                const bottom = Math.max(...rects.map((r) => r.bottom));
+
+                window.parent.postMessage({
+                    type: 'music-player-clip',
+                    inset: {
+                        top: Math.max(0, Math.floor(top - pad)),
+                        left: Math.max(0, Math.floor(left - pad)),
+                        right: Math.max(0, Math.floor(vw - right - pad)),
+                        bottom: Math.max(0, Math.floor(vh - bottom - pad)),
+                    },
+                }, '*');
             }
 
             if (window.ResizeObserver) {
@@ -1649,10 +1701,23 @@
                     if (el) mo.observe(el, { attributes: true, attributeFilter: ['class'] });
                 });
             }
+            // Fires when the PARENT resizes our iframe -- this is how we
+            // catch the "our viewport just actually changed" moment and
+            // send an accurate clip inset instead of a stale one.
+            window.addEventListener('resize', reportHeight);
             window.addEventListener('load', reportHeight);
             document.addEventListener('click', () => setTimeout(reportHeight, 50));
             setTimeout(reportHeight, 300);
             setTimeout(reportHeight, 1200);
+            // #music-player's collapse/expand toggle slides it via a 0.5s
+            // (overshooting) transform transition -- the 50ms click-driven
+            // reportHeight() above fires well before that settles, so it
+            // reports a mid-slide rect. Correct it once the slide actually
+            // finishes, or the clip stays locked onto a stale, ~collapsed
+            // inset even though the pill is now fully open on screen.
+            target.addEventListener('transitionend', (e) => {
+                if (e.propertyName === 'transform') reportHeight();
+            });
         })();
     </script>
 </body>
