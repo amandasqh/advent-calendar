@@ -1,11 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // header animation
     const title = document.querySelector('h1');
     if (title && window.gsap) {
         gsap.from(title, { duration: 1, opacity: 0, y: 20, ease: 'power3.out' });
     }
 
-    // add typewriter effect to the subtitle
     var typewriter = new Typewriter('#typewriter', {
         loop: true,
         delay: 60
@@ -25,7 +23,6 @@ document.addEventListener('DOMContentLoaded', () => {
         .pauseFor(2000)
         .start();
 
-    // add gsap magnetic tween to the button
     var zones = document.querySelectorAll(".mag-zone");
     var zone = zones[0];
     var btn = zone.querySelector(".mag-btn");
@@ -54,10 +51,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     });
 
-    // show the buttons
     const buttons = document.querySelector('.buttons');
     if (buttons) {
-        // delay few seconds then show the buttons ease in
         setTimeout(() => {
             buttons.style.visibility = 'visible';
             gsap.from(buttons, {

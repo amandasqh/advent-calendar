@@ -4,7 +4,7 @@ A 24-day, advent-calendar-style birthday countdown built with Django +
 vanilla HTML/CSS/JS + GSAP. No React, no build step — everything ships as
 plain static files Django serves directly.
 
-Countdown target: **July 28, 2026**. Calendar opens 24 days before that
+Countdown target: **July 24, 2026**. Calendar opens 24 days before that
 (`START_DATE` in `views.py`), one box unlocking per day.
 
 ---
@@ -12,7 +12,7 @@ Countdown target: **July 28, 2026**. Calendar opens 24 days before that
 ## 1. One-time setup
 
 ```bash
-pip install django
+pip install -r requirements.txt
 ```
 
 Your `settings.py` needs these (some may already be there):
@@ -204,27 +204,28 @@ Four intentionally different bursts (`canvas-confetti`, loaded in
 
 ---
 
-## 8. Asset checklist (placeholders that need real files)
+## 8. Assets
 
-None of these exist yet — the site falls back gracefully (missing `<img>`s
-just show broken-image icons in most spots, or an emoji placeholder on the
-finale page), but for the real thing you'll want:
+All real assets are in place under `static/img/`:
 
 ```
 static/img/
-  logo.png, box.png, cursor_sm.png, cursor_paw.png
-  items/item 1.png ... item 24.png        (the 24 box faces)
+  logo.png, box.png, cursor_sm.png, cursor_paw.png, final.png, music.png
+  items/item 1.png ... item 24.png          (the 24 box faces)
   stickers/sticker 1.png ... sticker 15.png (stamp collectibles)
-  coupons/coupon_*.png                     (per coupon-day box)
-  gifts/giftbox.png                        (the ONE shared "unopened gift" box art)
-  photos/fav_photo*.jpeg                   (photo-type boxes)
-  finale/polaroid-1.jpg ... polaroid-4.jpg
-  finale/loop-1.jpg ... loop-6.jpg
+  coupons/coupon_*.png                      (per coupon-day box)
+  photos/fav_photo*.jpeg                    (photo-type boxes)
+  photos/finale/polaroid_1.jpeg ... polaroid_21.jpeg (finale polaroids + loop reel)
 ```
 
-`img/gifts/giftbox.png` is the only gift-related image used anymore —
-individual gift entries in `views.py` deliberately don't reference a real
-photo of the actual gift (see the shake-to-reveal mechanic).
+The site still falls back gracefully if any `<img>` fails to load (an
+`onerror` handler swaps in an emoji placeholder), which matters most for
+the finale page since it's the one place a missing photo would otherwise
+show a broken-image icon mid-scrapbook.
+
+`static/img/gifts/` is intentionally empty — individual gift entries in
+`views.py` deliberately don't reference a real photo of the actual gift
+(see the shake-to-reveal mechanic).
 
 ---
 
@@ -253,7 +254,7 @@ photo of the actual gift (see the shake-to-reveal mechanic).
 2. **Create a Postgres database first** (Render dashboard → New → Postgres,
    choose the **Free** instance type). Copy its "Internal Database URL."
    - ⚠️ Free Render Postgres databases **expire 30 days after creation**.
-     Given the calendar only runs ~28 days (July 1–28), this lines up
+     Given the calendar only runs ~24 days (July 1–24), this lines up
      nicely — just create the database close to July 1, not months early.
    - Free web services have **no persistent disk**, so a local SQLite file
      is not reliable there (it can disappear on redeploy/restart). Postgres

@@ -2,12 +2,10 @@
 {% load static %}
 
 {% block style %}
-  <!-- Main CSS -->
   <link rel="stylesheet" href="{% static 'css/letter.css' %}">
 {% endblock %}
 
 {% block content %}
-<!-- Letter container with shadow -->
 <section class="letter-page my-5" id="letter-page" aria-label="Opening letter">
 
   <div class="letter-wrap">
@@ -53,6 +51,3 @@
 {% block scripts %}
 <script src="{% static 'js/letter.js' %}"></script>
 {% endblock %}
-
-</body>
-</html>

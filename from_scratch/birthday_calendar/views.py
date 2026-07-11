@@ -20,10 +20,10 @@ TOTAL_BOXES = 24
 # START_DATE + (n-1) days.
 START_DATE = date(2026, 7, 1)
 
-# Set to True while you're building/previewing to unlock every day regardless
-# of the real date (so you can click through all 24 surprises). Set back to
-# False before sending the link to anyone!
-DEBUG_MODE = False
+DEBUG_MODE = True
+
+MESSAGE_COUNT = 108045
+RELATIONSHIP_START_DATE = "2025-11-08"
 
 
 LOCAL_TZ = ZoneInfo("Asia/Singapore")
@@ -84,7 +84,6 @@ BOX_CONTENT = [
         "type": "gift",
         "emoji": "🖊️",
         "body": "For all of our little accidents. One for each of us!",
-        # "image": "img/gifts/stain_pen.png",
     },
     {
         "title": "Playlist unlocked!",
@@ -118,7 +117,6 @@ BOX_CONTENT = [
         "type": "gift",
         "emoji": "🍬",
         "body": "A little box of your favourite snacks. Don't finish it all in one go but remember to eat it! Please 🥺",
-        # "image": "img/gifts/snack_box.png",
     },
     {
         "title": "Our bucket list",
@@ -147,7 +145,6 @@ BOX_CONTENT = [
         "type": "gift",
         "emoji": "🍰",
         "body": "Something baked with love.",
-        # "image": "img/gifts/bakes.png",
     },
     {
         "title": "Free pass!",
@@ -161,7 +158,6 @@ BOX_CONTENT = [
         "type": "gift",
         "emoji": "🎧",
         "body": "A little something to keep your earphones safe.",
-        # "image": "img/gifts/airpods_case.png",
     },
     {
         "title": "The biggest difference I saw in you",
@@ -202,7 +198,6 @@ BOX_CONTENT = [
         "type": "gift",
         "emoji": "🧦",
         "body": "Warm feet, warm heart. No rashies!",
-        # "image": "img/gifts/socks.png",
     },
     {
         "title": "World map",
@@ -215,21 +210,18 @@ BOX_CONTENT = [
         "type": "gift",
         "emoji": "💍",
         "body": "I know how much you cherish your rings. I've gotten this for you so they are always safe and close to your heart, even when your hands and mind are busy.",
-        # "image": "img/gifts/ring_holder.png",
     },
     {
         "title": "Card",
         "type": "gift",
         "emoji": "💌",
         "body": "A handmade card just for you.",
-        # "image": "img/gifts/card.png",
     },
     {
         "title": "Yoga towel",
         "type": "gift",
         "emoji": "🧘",
         "body": "To keep you safe as we stretch and breathe together.",
-        # "image": "img/gifts/yoga_mat.png",
     },
     {
         "title": "Breathe with me",
@@ -278,6 +270,7 @@ def _load_state():
     data.setdefault("opened", [])
     data.setdefault("positions", {})
     data.setdefault("bucket_checked", [])
+    data.setdefault("bucket_items", None)
     return obj, data
 
 
@@ -318,16 +311,53 @@ def _get_bucket_checked():
     return set(data.get("bucket_checked", []))
 
 
-def _toggle_bucket(index):
+def _toggle_bucket(item_id):
     obj, data = _load_state()
     checked = data.get("bucket_checked", [])
-    if index in checked:
-        checked.remove(index)
+    if item_id in checked:
+        checked.remove(item_id)
     else:
-        checked.append(index)
+        checked.append(item_id)
     data["bucket_checked"] = checked
     _save_state(obj, data)
     return checked
+
+def _bucket_seed_items():
+    content = next(c for c in BOX_CONTENT if c["type"] == "bucketlist")
+    return [
+        {"id": f"seed-{i}", "emoji": item["emoji"], "text": item["text"]}
+        for i, item in enumerate(content["bucket_items"])
+    ]
+
+
+def _get_bucket_items():
+    _, data = _load_state()
+    return data.get("bucket_items") or _bucket_seed_items()
+
+
+def _reorder_bucket_items(order):
+    obj, data = _load_state()
+    by_id = {item["id"]: item for item in _get_bucket_items()}
+    reordered = [by_id[item_id] for item_id in order if item_id in by_id]
+    # Anything not named in `order` (shouldn't normally happen) still gets
+    # kept, tacked on the end, so a stale/partial order can't drop items.
+    leftover = [item for item_id, item in by_id.items() if item_id not in order]
+    data["bucket_items"] = reordered + leftover
+    _save_state(obj, data)
+    return data["bucket_items"]
+
+
+def _add_bucket_item(emoji, text):
+    obj, data = _load_state()
+    items = _get_bucket_items()
+    new_item = {
+        "id": f"custom-{int(datetime.now().timestamp() * 1000)}",
+        "emoji": (emoji or "✨").strip()[:8],
+        "text": text.strip()[:140],
+    }
+    data["bucket_items"] = items + [new_item]
+    _save_state(obj, data)
+    return data["bucket_items"]
 
 
 # ---------------------------------------------------------------------------
@@ -413,16 +443,11 @@ def finale(request):
     opened = _get_opened()
     if TOTAL_BOXES not in opened and effective_day_index() < TOTAL_BOXES:
         return redirect("main_screen")
-    return render(request, "finale.html")
+    return render(request, "finale.html", {
+        "message_count": MESSAGE_COUNT,
+        "relationship_start_date": RELATIONSHIP_START_DATE,
+    })
 
-
-# ---------------------------------------------------------------------------
-# API -- all POST endpoints expect JSON bodies and are same-origin, so
-# Django's CSRF cookie/header pair is used (see main_screen.js for the
-# fetch() calls that attach the X-CSRFToken header). State is shared
-# site-wide (see models.SiteState), not per-session, so progress carries
-# over across devices/browsers automatically.
-# ---------------------------------------------------------------------------
 
 @require_POST
 def api_open_box(request):
@@ -460,34 +485,57 @@ def api_save_position(request):
 def api_bucket_list(request):
     try:
         data = json.loads(request.body or "{}")
-        index = int(data.get("index"))
+        item_id = str(data.get("id") or "")
     except (TypeError, ValueError, json.JSONDecodeError):
         return JsonResponse({"ok": False, "error": "invalid payload"}, status=400)
 
-    checked = _toggle_bucket(index)
-    return JsonResponse({"ok": True, "checked": sorted(checked)})
+    if not item_id:
+        return JsonResponse({"ok": False, "error": "invalid payload"}, status=400)
+
+    checked = _toggle_bucket(item_id)
+    return JsonResponse({"ok": True, "checked": checked})
+
+
+@require_POST
+def api_bucket_reorder(request):
+    try:
+        data = json.loads(request.body or "{}")
+        order = data.get("order")
+        if not isinstance(order, list):
+            raise ValueError("order must be a list")
+        order = [str(item_id) for item_id in order]
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return JsonResponse({"ok": False, "error": "invalid payload"}, status=400)
+
+    items = _reorder_bucket_items(order)
+    return JsonResponse({"ok": True, "items": items})
+
+
+@require_POST
+def api_bucket_add(request):
+    try:
+        data = json.loads(request.body or "{}")
+        text = str(data.get("text") or "").strip()
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return JsonResponse({"ok": False, "error": "invalid payload"}, status=400)
+
+    if not text:
+        return JsonResponse({"ok": False, "error": "text required"}, status=400)
+
+    emoji = str(data.get("emoji") or "").strip()
+    items = _add_bucket_item(emoji, text)
+    return JsonResponse({"ok": True, "items": items})
 
 
 def api_get_state(request):
     return JsonResponse({
         "opened": sorted(_get_opened()),
         "positions": _get_positions(),
-        "bucket_checked": sorted(_get_bucket_checked()),
+        "bucket_items": _get_bucket_items(),
+        "bucket_checked": list(_get_bucket_checked()),
         "today_index": day_index_for(),
     })
 
-
-# ---------------------------------------------------------------------------
-# OPS: health check (for Render) + a reset endpoint.
-#
-# Free-tier Render web services don't get shell/SSH access, so there's no
-# `python manage.py shell` to clear SiteState after a test run. This gives
-# you a URL-based escape hatch instead: set RESET_TOKEN as an environment
-# variable in Render's dashboard, then visit
-#   https://<your-app>.onrender.com/api/reset/?token=<that value>
-# to wipe all progress and start over. Leave RESET_TOKEN unset locally and
-# this endpoint just 404s-equivalent (403) for everyone, including you.
-# ---------------------------------------------------------------------------
 
 def healthz(request):
     return JsonResponse({"status": "ok"})

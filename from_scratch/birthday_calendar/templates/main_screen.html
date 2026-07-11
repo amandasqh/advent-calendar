@@ -10,6 +10,7 @@
 {% block content %}
 <main class="main-screen">
   <div class="floating-bg" aria-hidden="true"></div>
+  <div class="day-toast" id="day-toast" aria-live="polite"></div>
 
   <div class="main-shell">
     <section class="hero" aria-label="Birthday countdown intro">
@@ -174,6 +175,11 @@
     <p id="bucketlist-modal-body" class="subcopy"></p>
     <p class="bucketlist-progress" id="bucketlist-progress"></p>
     <div id="bucketlist-items" class="bucketlist-items"></div>
+    <form id="bucketlist-add-form" class="bucketlist-add-form">
+      <input type="text" id="bucketlist-add-emoji" class="bucketlist-add-emoji" maxlength="4" placeholder="✨" aria-label="Emoji (optional)">
+      <input type="text" id="bucketlist-add-text" class="bucketlist-add-text" maxlength="140" placeholder="Add a new dream..." aria-label="New bucket list item" required>
+      <button type="submit" class="bucketlist-add-btn">Add</button>
+    </form>
   </div>
 </div>
 

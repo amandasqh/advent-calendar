@@ -26,6 +26,26 @@
     100% { transform: translateY(-110vh) translateX(20px) rotate(20deg); opacity: 0; }
 }
 
+.finale-cursor-trail {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 60;
+    overflow: hidden;
+}
+.cursor-heart {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    font-size: 1.1rem;
+    color: rgba(212, 165, 165, 0.9);
+    will-change: transform, opacity;
+}
+
+.finale-word {
+    display: inline-block;
+    will-change: transform, opacity;
+}
+
 /* ---------------- Hero ---------------- */
 .finale-hero {
     min-height: 90vh;
@@ -126,6 +146,7 @@
     box-shadow: var(--shadow-paper);
     width: min(100%, 240px);
     text-align: center;
+    overflow: hidden;
 }
 .polaroid:nth-child(odd) { transform: rotate(-4deg); }
 .polaroid:nth-child(even) { transform: rotate(3deg); }
@@ -197,6 +218,186 @@
 @keyframes finaleLoopScroll {
     0% { transform: translateX(0); }
     100% { transform: translateX(-50%); }
+}
+
+/* ---------------- "Us, in numbers" + guess-the-number poll ---------------- */
+.finale-stats {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 6vh 1.5rem 8vh;
+    text-align: center;
+    position: relative;
+    z-index: 2;
+}
+.finale-stats-caption {
+    text-transform: uppercase;
+    letter-spacing: 0.3em;
+    font-size: 0.8rem;
+    color: var(--dusty-blue-dk);
+    margin-bottom: 2rem;
+}
+
+.stats-poll {
+    background: var(--paper);
+    border-radius: 1rem;
+    box-shadow: var(--shadow-paper);
+    padding: 2rem 1.6rem;
+    max-width: 30rem;
+    margin: 0 auto;
+    transition: opacity 0.4s ease;
+}
+.stats-poll.is-done { opacity: 0; }
+.stats-poll__question {
+    color: var(--ink);
+    font-size: 1.05rem;
+    margin-bottom: 1.2rem;
+    line-height: 1.5;
+}
+.stats-poll__options {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.7rem;
+}
+.stats-poll__option {
+    border: 1.5px solid var(--dusty-blue);
+    background: transparent;
+    color: var(--ink);
+    border-radius: 0.7rem;
+    padding: 0.7rem 0.5rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+.stats-poll__option:hover,
+.stats-poll__option:focus-visible {
+    background: var(--dusty-blue);
+    color: var(--white);
+}
+.stats-poll__feedback {
+    margin-top: 1.2rem;
+    min-height: 1.2em;
+    font-style: italic;
+    color: var(--dusty-blue-dk);
+}
+
+.finale-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+        "messages countdown"
+        "infinite infinite";
+    gap: 1.5rem;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+    pointer-events: none;
+}
+.finale-stats-grid.is-revealed {
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+}
+.stat-tile {
+    background: linear-gradient(135deg, #132a43 0%, #1f436f 100%);
+    border-radius: 1.2rem;
+    padding: 2.2rem 1.2rem;
+    box-shadow: var(--shadow-paper);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.8rem;
+}
+.stat-tile--messages { grid-area: messages; }
+.stat-tile--countdown { grid-area: countdown; }
+.stat-tile--infinite { grid-area: infinite; }
+
+/* Digital-clock chip for the message count, matching main_screen's flip-card look. */
+.stat-tile__number {
+    font-family: var(--font-display, inherit);
+    font-size: clamp(1.8rem, 5vw, 2.6rem);
+    font-weight: 700;
+    color: #f4fbff;
+    font-variant-numeric: tabular-nums;
+}
+.stat-tile__number--hero {
+    font-size: clamp(2.2rem, 7.5vw, 3.6rem);
+    letter-spacing: 0.02em;
+    color: #f4fbff;
+}
+.stat-tile__number--hero.is-pulsing {
+    animation: statPulse 0.5s ease;
+}
+@keyframes statPulse {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+/* Digital-clock style days/hours/mins countdown. */
+.countdown {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 0.5rem;
+}
+.countdown__unit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+}
+.countdown__value-mask {
+    position: relative;
+    display: inline-block;
+    width: 2.8ch;
+    padding: 0.35rem 0.35rem;
+    overflow: hidden;
+    font-family: var(--font-display, inherit);
+    font-size: clamp(1.7rem, 6.5vw, 2.8rem);
+    font-weight: 700;
+    line-height: 1.1;
+    height: 1.2em;
+    box-sizing: content-box;
+}
+.countdown__value-mask--wide {
+    width: 4.2ch;
+}
+.countdown__value {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #f4fbff;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+.countdown__label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: rgba(244, 251, 255, 0.88);
+}
+.countdown__sep {
+    padding-top: 0.35rem;
+    font-size: clamp(1.5rem, 5.5vw, 2.4rem);
+    font-weight: 700;
+    line-height: 1.1;
+    color: #f4fbff;
+    opacity: 0.6;
+    animation: countdownBlink 1.4s steps(1, jump-none) infinite;
+}
+@keyframes countdownBlink {
+    0%, 49% { opacity: 0.6; }
+    50%, 100% { opacity: 0.15; }
+}
+
+.stat-tile__label {
+    font-size: 0.82rem;
+    color: rgba(244, 251, 255, 0.82);
+    line-height: 1.4;
 }
 
 /* ---------------- Final words + candle ---------------- */
@@ -298,6 +499,12 @@
 
 @media (max-width: 700px) {
     .finale-polaroids { grid-template-columns: 1fr 1fr; }
+    .finale-stats-grid {
+        grid-template-columns: 1fr;
+        grid-template-areas: "messages" "countdown" "infinite";
+        gap: 1rem;
+    }
+    .stats-poll__options { grid-template-columns: 1fr; }
 }
 
 #final-img {

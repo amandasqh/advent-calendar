@@ -91,7 +91,6 @@ a {
 }
 
 .btn {
-    /* fatter corners */
     border-radius: 20px;
     padding: 0.8rem 1.5rem;
 }
@@ -112,7 +111,6 @@ a {
 }
 
 .glow{
-    /* glow animated effect for button */
     box-shadow: 0 0 10px #5aa9e6, 0 0 20px #5aa9e6, 0 0 30px #5aa9e6, 0 0 40px #5aa9e6;
 }
 
@@ -144,8 +142,6 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
-  /* border-radius: 50%;
-  border: 1px dashed var(--s25); */
   position: relative;
   cursor: pointer;
 }

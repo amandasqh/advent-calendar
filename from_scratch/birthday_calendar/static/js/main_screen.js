@@ -87,6 +87,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const progressCard = document.querySelector('.progress-card');
     const totalBoxes = boxes.length;
     const progressState = { pct: 0 };
+    const todayIndex = parseInt(surface?.dataset.todayIndex || '0', 10);
+
+    // -----------------------------------------------------------------
+    // Mobile layout: below this width, boxes render as a plain grid
+    // instead of the draggable overlapping pile (see main_screen.css
+    // `.is-mobile-grid` -- the pile only peeks ~34px per card on a phone
+    // screen, so almost everything stays hidden until dragged apart).
+    // -----------------------------------------------------------------
+    const MOBILE_GRID_BREAKPOINT = 700;
+    function isMobileLayout() {
+        return window.innerWidth <= MOBILE_GRID_BREAKPOINT;
+    }
+    const mobileGridActive = isMobileLayout();
+    if (surface && mobileGridActive) {
+        surface.classList.add('is-mobile-grid');
+        const hint = document.querySelector('.table-hint');
+        if (hint) hint.textContent = 'Tap a box to open it ✨';
+    }
 
     function currentUnlockedCount() {
         return boxes.filter((box) => box.classList.contains('state-opened')).length;
@@ -699,19 +717,51 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ============================ Bucket list modal (day 10) ============================
+    // Items live server-side in SiteState (see views.py _get_bucket_items),
+    // seeded from BOX_CONTENT but reorderable/extendable from here on --
+    // each item has a stable `id` so checked-state and order both survive
+    // edits. `bucketItems` mirrors the server's current list locally so
+    // reorder/add can re-render immediately without a round trip.
     const bucketlistModal = document.getElementById('bucketlist-modal');
     const bucketlistTitle = document.getElementById('bucketlist-modal-title');
     const bucketlistBody = document.getElementById('bucketlist-modal-body');
     const bucketlistProgress = document.getElementById('bucketlist-progress');
     const bucketlistItemsEl = document.getElementById('bucketlist-items');
+    const bucketlistAddForm = document.getElementById('bucketlist-add-form');
+    const bucketlistAddEmoji = document.getElementById('bucketlist-add-emoji');
+    const bucketlistAddText = document.getElementById('bucketlist-add-text');
     wireBackdropClose(bucketlistModal, releasePendingStampIfAny);
 
-    function renderBucketlist(items, checkedSet) {
+    let bucketItems = [];
+    let bucketChecked = new Set();
+
+    function renderBucketlist() {
         bucketlistItemsEl.innerHTML = '';
-        items.forEach((item, index) => {
-            const row = document.createElement('button');
-            row.type = 'button';
-            row.className = 'bucketlist-item' + (checkedSet.has(index) ? ' is-checked' : '');
+        bucketItems.forEach((item, index) => {
+            const row = document.createElement('div');
+            row.className = 'bucketlist-item' + (bucketChecked.has(item.id) ? ' is-checked' : '');
+            row.dataset.id = item.id;
+
+            const moveWrap = document.createElement('span');
+            moveWrap.className = 'bucketlist-item__move';
+
+            const upBtn = document.createElement('button');
+            upBtn.type = 'button';
+            upBtn.className = 'bucketlist-item__move-btn';
+            upBtn.textContent = '▲';
+            upBtn.setAttribute('aria-label', 'Move up');
+            upBtn.disabled = index === 0;
+            upBtn.addEventListener('click', (e) => { e.stopPropagation(); moveBucketItem(index, -1); });
+
+            const downBtn = document.createElement('button');
+            downBtn.type = 'button';
+            downBtn.className = 'bucketlist-item__move-btn';
+            downBtn.textContent = '▼';
+            downBtn.setAttribute('aria-label', 'Move down');
+            downBtn.disabled = index === bucketItems.length - 1;
+            downBtn.addEventListener('click', (e) => { e.stopPropagation(); moveBucketItem(index, 1); });
+
+            moveWrap.append(upBtn, downBtn);
 
             const emoji = document.createElement('span');
             emoji.className = 'bucketlist-item__emoji';
@@ -721,42 +771,76 @@ document.addEventListener('DOMContentLoaded', () => {
             text.className = 'bucketlist-item__text';
             text.textContent = item.text || '';
 
-            const check = document.createElement('span');
+            const check = document.createElement('button');
+            check.type = 'button';
             check.className = 'bucketlist-item__check';
             check.textContent = '✓';
+            check.setAttribute('aria-label', 'Mark as done');
+            check.addEventListener('click', () => toggleBucketChecked(item.id, row, check));
 
-            row.append(emoji, text, check);
-            row.addEventListener('click', () => {
-                const nowChecked = row.classList.toggle('is-checked');
-                if (nowChecked) {
-                    checkedSet.add(index);
-                    if (window.gsap) gsap.fromTo(check, { scale: 0 }, { scale: 1.15, duration: 0.3, ease: 'back.out(3)' });
-                } else {
-                    checkedSet.delete(index);
-                }
-                updateBucketlistProgress(items.length, checkedSet.size);
-                apiPost('/api/bucket-list/', { index });
-            });
-
+            row.append(moveWrap, emoji, text, check);
             bucketlistItemsEl.appendChild(row);
         });
-        updateBucketlistProgress(items.length, checkedSet.size);
+        updateBucketlistProgress();
     }
 
-    function updateBucketlistProgress(total, checkedCount) {
-        if (bucketlistProgress) bucketlistProgress.textContent = `${checkedCount}/${total} dreams marked ✨`;
+    function toggleBucketChecked(id, row, check) {
+        const nowChecked = row.classList.toggle('is-checked');
+        if (nowChecked) {
+            bucketChecked.add(id);
+            if (window.gsap) gsap.fromTo(check, { scale: 0 }, { scale: 1.15, duration: 0.3, ease: 'back.out(3)' });
+        } else {
+            bucketChecked.delete(id);
+        }
+        updateBucketlistProgress();
+        apiPost('/api/bucket-list/', { id });
+    }
+
+    function moveBucketItem(index, delta) {
+        const target = index + delta;
+        if (target < 0 || target >= bucketItems.length) return;
+        [bucketItems[index], bucketItems[target]] = [bucketItems[target], bucketItems[index]];
+        renderBucketlist();
+        apiPost('/api/bucket-list/reorder/', { order: bucketItems.map((item) => item.id) });
+    }
+
+    function updateBucketlistProgress() {
+        if (bucketlistProgress) bucketlistProgress.textContent = `${bucketChecked.size}/${bucketItems.length} dreams marked ✨`;
+    }
+
+    if (bucketlistAddForm) {
+        bucketlistAddForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const text = bucketlistAddText.value.trim();
+            if (!text) return;
+            const emoji = bucketlistAddEmoji.value.trim();
+            const submitBtn = bucketlistAddForm.querySelector('button[type="submit"]');
+            if (submitBtn) submitBtn.disabled = true;
+            apiPost('/api/bucket-list/add/', { text, emoji }).then((res) => {
+                if (res && res.ok) {
+                    bucketItems = res.items;
+                    bucketlistAddText.value = '';
+                    bucketlistAddEmoji.value = '';
+                    renderBucketlist();
+                }
+            }).finally(() => {
+                if (submitBtn) submitBtn.disabled = false;
+            });
+        });
     }
 
     function openBucketlistModal(content) {
         bucketlistTitle.textContent = content.title || 'Our bucket list';
         bucketlistBody.textContent = content.body || '';
-        const items = content.bucket_items || [];
 
         fetch('/api/state/').then((r) => r.json()).then((state) => {
-            const checkedSet = new Set(state.bucket_checked || []);
-            renderBucketlist(items, checkedSet);
+            bucketItems = state.bucket_items || [];
+            bucketChecked = new Set(state.bucket_checked || []);
+            renderBucketlist();
         }).catch(() => {
-            renderBucketlist(items, new Set());
+            bucketItems = [];
+            bucketChecked = new Set();
+            renderBucketlist();
         });
 
         openBackdrop(bucketlistModal);
@@ -928,6 +1012,78 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // -----------------------------------------------------------------
+    // Long-press peek: holding down on a still-locked box gives a little
+    // "opens in N days" hint instead of just shake-and-reject on tap.
+    // -----------------------------------------------------------------
+    function showLockedPeek(box) {
+        const number = parseInt(box.dataset.number, 10);
+        const daysLeft = Math.max(1, number - todayIndex);
+        const inner = box.querySelector('.table-item__inner');
+        if (!inner) return;
+
+        let bubble = inner.querySelector('.peek-bubble');
+        if (!bubble) {
+            bubble = document.createElement('span');
+            bubble.className = 'peek-bubble';
+            inner.appendChild(bubble);
+        }
+        bubble.textContent = daysLeft === 1 ? 'opens tomorrow 👀' : `opens in ${daysLeft} days`;
+        bubble.classList.add('is-visible');
+
+        if (window.gsap) {
+            gsap.fromTo(inner, { scale: 1 }, { scale: 1.06, duration: 0.22, yoyo: true, repeat: 1, ease: 'sine.inOut' });
+        }
+
+        clearTimeout(bubble._hideTimer);
+        bubble._hideTimer = setTimeout(() => bubble.classList.remove('is-visible'), 1600);
+    }
+
+    function bindLongPressPreview(box) {
+        let pressTimer = null;
+        let justPeeked = false;
+
+        const start = () => {
+            if (box.dataset.state !== 'locked') return;
+            pressTimer = setTimeout(() => {
+                justPeeked = true;
+                showLockedPeek(box);
+            }, 480);
+        };
+        const cancel = () => clearTimeout(pressTimer);
+
+        box.addEventListener('touchstart', start, { passive: true });
+        box.addEventListener('touchend', cancel);
+        box.addEventListener('touchmove', cancel);
+        box.addEventListener('mousedown', start);
+        box.addEventListener('mouseup', cancel);
+        box.addEventListener('mouseleave', cancel);
+
+        // Capture phase, so this runs before the click handler below and
+        // can swallow the click that naturally follows a long-press --
+        // otherwise a peek would immediately also trigger the shake-reject.
+        box.addEventListener('click', (e) => {
+            if (justPeeked) {
+                justPeeked = false;
+                e.stopPropagation();
+            }
+        }, true);
+    }
+
+    // -----------------------------------------------------------------
+    // "Day X opened today!" toast -- only for the box that unlocked today,
+    // as a little extra nudge/reward for opening it same-day.
+    // -----------------------------------------------------------------
+    const dayToast = document.getElementById('day-toast');
+    let dayToastTimer = null;
+    function showDayToast(number) {
+        if (!dayToast) return;
+        dayToast.textContent = `Day ${number} opened today! 🎉`;
+        dayToast.classList.add('is-visible');
+        clearTimeout(dayToastTimer);
+        dayToastTimer = setTimeout(() => dayToast.classList.remove('is-visible'), 2600);
+    }
+
+    // -----------------------------------------------------------------
     // Box click dispatch
     // -----------------------------------------------------------------
     function markOpenedLocally(box) {
@@ -938,6 +1094,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     boxes.forEach((box) => {
+        bindLongPressPreview(box);
         box.addEventListener('click', (e) => {
             // A drag that ends as a tiny move can still fire a click -- ignore
             // clicks that immediately follow a drag release.
@@ -986,33 +1143,21 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (isFirstOpen) {
+                const number = parseInt(box.dataset.number, 10);
                 maybeQueueStamp(box);
                 markOpenedLocally(box);
-                apiPost('/api/open-box/', { number: parseInt(box.dataset.number, 10) });
-                if (parseInt(box.dataset.number, 10) === 6) {
+                apiPost('/api/open-box/', { number });
+                if (number === todayIndex) {
+                    showDayToast(number);
+                }
+                if (number === 6) {
                     revealMusicIframeLive();
                 }
             }
         });
     });
 
-    // -----------------------------------------------------------------
-    // Music player iframe: sized AND clipped dynamically by the player
-    // itself so it never blocks clicks on the rest of the page.
-    //
-    // Two things the child tells us:
-    //  - 'music-player-resize': how tall the iframe box itself needs to
-    //    be so its content isn't visually clipped (expanded state is
-    //    computed here, relative to OUR real viewport, since the child's
-    //    own window.innerHeight is circular -- capped by whatever height
-    //    we've already given it).
-    //  - 'music-player-clip': a pixel inset (top/right/bottom/left) marking
-    //    which part of that box is actually visible player content. We
-    //    turn that into a CSS clip-path so pointer-events: auto only
-    //    applies to those pixels -- the rest of the (necessarily
-    //    oversized) iframe rectangle becomes click-through, so boxes
-    //    sitting underneath the empty margins stay clickable.
-    // -----------------------------------------------------------------
+
     const musicIframe = document.getElementById('music-iframe');
     let musicExpanded = false;
     let musicBounceInterval = null;
@@ -1068,14 +1213,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // -----------------------------------------------------------------
     // Init
     // -----------------------------------------------------------------
-    layoutStackPositions();
-    initDraggable();
+    if (!mobileGridActive) {
+        layoutStackPositions();
+        initDraggable();
+    }
     updateProgress();
     restoreCollectedStampsFromServer();
     renderStampCollection();
     if (stampCount) stampCount.textContent = collectedStamps.length;
 
-    window.addEventListener('load', () => layoutStackPositions());
+    if (!mobileGridActive) {
+        window.addEventListener('load', () => layoutStackPositions());
+    }
 
     // -----------------------------------------------------------------
     // A couple of small idle flourishes
@@ -1104,8 +1253,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     window.addEventListener('resize', () => {
+        // Crossing the mobile/desktop breakpoint (e.g. rotating a phone)
+        // changes which layout mode should be active -- simplest correct
+        // fix is a reload, since switching live would mean tearing down
+        // and rebuilding GSAP Draggable instances mid-session.
+        if (isMobileLayout() !== mobileGridActive) {
+            location.reload();
+            return;
+        }
         // Re-run stack layout only for boxes that were never dragged/saved,
         // so a resize doesn't fight with something the person moved on purpose.
-        layoutStackPositions();
+        if (!mobileGridActive) layoutStackPositions();
     });
 });

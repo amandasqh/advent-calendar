@@ -2,7 +2,8 @@ from django.urls import path
 
 from .views import (
     home, main_screen, letter, music_player, finale,
-    api_open_box, api_save_position, api_bucket_list, api_get_state,
+    api_open_box, api_save_position, api_bucket_list, api_bucket_reorder,
+    api_bucket_add, api_get_state,
     healthz, api_reset_state,
 )
 
@@ -18,6 +19,8 @@ urlpatterns = [
     path('api/open-box/', api_open_box, name='api_open_box'),
     path('api/save-position/', api_save_position, name='api_save_position'),
     path('api/bucket-list/', api_bucket_list, name='api_bucket_list'),
+    path('api/bucket-list/reorder/', api_bucket_reorder, name='api_bucket_reorder'),
+    path('api/bucket-list/add/', api_bucket_add, name='api_bucket_add'),
     path('api/state/', api_get_state, name='api_get_state'),
 
     # Ops
