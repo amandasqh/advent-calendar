@@ -75,6 +75,13 @@
         {% endfor %}
       </div>
     </section>
+
+    <section class="note-cta" aria-label="Write me a note">
+      <p class="note-cta__emoji" aria-hidden="true">💌</p>
+      <p class="note-cta__title">Got something on your mind?</p>
+      <p class="subcopy">Write me a little note -- it'll land straight in my inbox.</p>
+      <button type="button" class="btn btn-outline-primary btn-sm" id="note-trigger">Write me a note ✍️</button>
+    </section>
   </div>
 </main>
 
@@ -148,6 +155,21 @@
     <h2 class="letter-modal-title" id="letter-modal-title">Dear Mossy,</h2>
     <div class="letter-modal-body" id="letter-modal-body"></div>
     <p class="letter-modal-sign">with all my love 💕</p>
+  </div>
+</div>
+
+<!-- Write-a-note modal: sends straight to my Telegram, reuses the letter.css look -->
+<div class="modal-backdrop d-none" id="note-modal" role="dialog" aria-modal="true" aria-labelledby="note-modal-title">
+  <div class="modal-card letter-modal-card note-modal-card">
+    <button class="modal-close" id="note-modal-close" type="button" aria-label="Close">×</button>
+    <div class="letter-modal-tape" aria-hidden="true"></div>
+    <h2 class="letter-modal-title" id="note-modal-title">Write me a little note</h2>
+    <p class="subcopy mb-3">It'll land straight in my inbox, just for me.</p>
+    <textarea id="note-textarea" class="note-textarea" maxlength="2000" placeholder="Dear Mandi..." aria-label="Your note"></textarea>
+    <div class="note-modal-footer">
+      <span class="note-modal-status" id="note-modal-status" aria-live="polite"></span>
+      <button type="button" class="btn btn-primary glow" id="note-send-btn">Send 💌</button>
+    </div>
   </div>
 </div>
 

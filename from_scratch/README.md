@@ -274,10 +274,32 @@ show a broken-image icon mid-scrapbook.
    | `DEBUG` | leave unset (defaults to `False`) |
    | `DATABASE_URL` | paste the Postgres "Internal Database URL" from step 2 |
    | `RESET_TOKEN` | any long random string, e.g.: `python -c "import secrets; print(secrets.token_urlsafe(32))"` — optional; only gates `/api/reset/` (see "Testing & resetting" below) |
+   | `TELEGRAM_BOT_TOKEN` | optional — see "Boot notification" below |
+   | `TELEGRAM_CHAT_ID` | optional — see "Boot notification" below |
 
    `RENDER_EXTERNAL_HOSTNAME` is set automatically by Render — you don't add it yourself; `settings.py` reads it to build `ALLOWED_HOSTS`/`CSRF_TRUSTED_ORIGINS`.
 
 5. Click **Create Web Service**. First deploy takes a few minutes.
+
+### Boot notification (optional)
+
+Set `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` and `mysite/wsgi.py` will
+ping that chat with a message every time a real server process boots. This
+only fires for an actual WSGI boot (gunicorn locally or on Render) — never
+during `manage.py runserver`, `migrate`, or `collectstatic`, so local dev
+and the Render build step both stay silent. On the free tier, a cold start
+happens after 15 minutes idle, so in practice this lands roughly once per
+visit after a quiet spell rather than on every page load — a cheap way to
+know when someone's opened the site.
+
+To get the two values:
+1. Message [@BotFather](https://t.me/BotFather) on Telegram, send `/newbot`,
+   follow the prompts — it replies with your `TELEGRAM_BOT_TOKEN`.
+2. Message your new bot anything (bots can't message you first), then visit
+   `https://api.telegram.org/bot<TOKEN>/getUpdates` in a browser — your
+   `TELEGRAM_CHAT_ID` is the `"id"` under `"chat"` in the JSON response.
+
+Leave both unset to disable this entirely (it's a no-op without them).
 
 ### Testing after it's live
 

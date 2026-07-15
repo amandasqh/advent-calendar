@@ -217,6 +217,131 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // -----------------------------------------------------------------
+    // Mobile grid: long-press a box to pick it up, drag it over another
+    // to swap them, then let go -- both boxes glide (GSAP Flip) into
+    // their new grid cells instead of tracking free pixel positions.
+    // -----------------------------------------------------------------
+    function initMobileReorder() {
+        if (!surface || !boxes.length || !window.gsap || typeof Flip === 'undefined') return;
+        gsap.registerPlugin(Flip);
+
+        const LIFT_DELAY = 350;
+        const MOVE_CANCEL_DISTANCE = 10; // px of movement before the hold fires -> treat as a scroll
+
+        let pressTimer = null;
+        let startPoint = null;
+        let liftedBox = null;
+        let swapTarget = null;
+        let suppressNextClick = false;
+
+        function clearSwapHighlight() {
+            if (swapTarget) {
+                swapTarget.classList.remove('is-swap-target');
+                swapTarget = null;
+            }
+        }
+
+        function swapNodes(a, b) {
+            const aNext = a.nextSibling;
+            const bNext = b.nextSibling;
+            const parent = a.parentNode;
+            if (aNext === b) { parent.insertBefore(b, a); return; }
+            if (bNext === a) { parent.insertBefore(a, b); return; }
+            parent.insertBefore(a, bNext);
+            parent.insertBefore(b, aNext);
+        }
+
+        function dropLift(didSwap) {
+            const box = liftedBox;
+            liftedBox = null;
+            startPoint = null;
+            if (!box) return;
+            box.classList.remove('is-lifted');
+            box.style.pointerEvents = '';
+            clearSwapHighlight();
+            if (!didSwap) {
+                gsap.to(box, { x: 0, y: 0, duration: 0.3, ease: 'power2.out' });
+            }
+        }
+
+        function performSwap(box, target) {
+            gsap.set(box, { x: 0, y: 0 });
+            const state = Flip.getState([box, target]);
+            swapNodes(box, target);
+            box.classList.remove('is-lifted');
+            box.style.pointerEvents = '';
+            clearSwapHighlight();
+            liftedBox = null;
+            startPoint = null;
+            Flip.from(state, { duration: 0.4, ease: 'power2.inOut' });
+
+            apiPost('/api/swap-order/', {
+                a: parseInt(box.dataset.number, 10),
+                b: parseInt(target.dataset.number, 10),
+            });
+        }
+
+        boxes.forEach((box) => {
+            box.addEventListener('pointerdown', (e) => {
+                if (e.pointerType === 'mouse' && e.button !== 0) return;
+                startPoint = { x: e.clientX, y: e.clientY };
+                clearTimeout(pressTimer);
+                pressTimer = setTimeout(() => {
+                    liftedBox = box;
+                    suppressNextClick = true;
+                    box.classList.add('is-lifted');
+                    box.style.pointerEvents = 'none';
+                    gsap.set(box, { x: 0, y: 0 });
+                    if (navigator.vibrate) navigator.vibrate(12);
+                }, LIFT_DELAY);
+            });
+
+            box.addEventListener('pointermove', (e) => {
+                if (liftedBox || !startPoint) return;
+                const dist = Math.hypot(e.clientX - startPoint.x, e.clientY - startPoint.y);
+                if (dist > MOVE_CANCEL_DISTANCE) clearTimeout(pressTimer);
+            });
+
+            box.addEventListener('pointerup', () => clearTimeout(pressTimer));
+            box.addEventListener('pointercancel', () => clearTimeout(pressTimer));
+        });
+
+        window.addEventListener('pointermove', (e) => {
+            if (!liftedBox || !startPoint) return;
+            e.preventDefault();
+            gsap.set(liftedBox, { x: e.clientX - startPoint.x, y: e.clientY - startPoint.y });
+
+            const el = document.elementFromPoint(e.clientX, e.clientY);
+            const target = el ? el.closest('.table-item') : null;
+            if (target !== swapTarget) {
+                clearSwapHighlight();
+                if (target && target !== liftedBox) {
+                    target.classList.add('is-swap-target');
+                    swapTarget = target;
+                }
+            }
+        }, { passive: false });
+
+        window.addEventListener('pointerup', () => {
+            if (!liftedBox) return;
+            if (swapTarget && swapTarget !== liftedBox) {
+                performSwap(liftedBox, swapTarget);
+            } else {
+                dropLift(false);
+            }
+        });
+
+        // A long-press-then-release without dragging shouldn't also open the
+        // box's modal -- capture phase runs before the box's own click handler.
+        surface.addEventListener('click', (e) => {
+            if (suppressNextClick) {
+                suppressNextClick = false;
+                e.stopPropagation();
+            }
+        }, true);
+    }
+
+    // -----------------------------------------------------------------
     // Stamp collection (unchanged mechanics from the original build)
     // -----------------------------------------------------------------
     const modal = document.getElementById('modal');
@@ -716,6 +841,54 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // ============================ Write-a-note modal ============================
+    // Sends straight to the site owner's Telegram (see views.py api_send_note) --
+    // also saved server-side regardless of whether that push succeeds, so a
+    // misconfigured/offline bot can never actually lose a note.
+    const noteTrigger = document.getElementById('note-trigger');
+    const noteModal = document.getElementById('note-modal');
+    const noteTextarea = document.getElementById('note-textarea');
+    const noteSendBtn = document.getElementById('note-send-btn');
+    const noteModalStatus = document.getElementById('note-modal-status');
+    wireBackdropClose(noteModal);
+
+    function setNoteStatus(text) {
+        if (noteModalStatus) noteModalStatus.textContent = text;
+    }
+
+    if (noteTrigger) {
+        noteTrigger.addEventListener('click', () => {
+            setNoteStatus('');
+            openBackdrop(noteModal);
+            if (noteTextarea) setTimeout(() => noteTextarea.focus(), 350);
+        });
+    }
+
+    if (noteSendBtn) {
+        noteSendBtn.addEventListener('click', () => {
+            const text = (noteTextarea.value || '').trim();
+            if (!text) {
+                setNoteStatus("Write something first — even just a little hello 🥺");
+                return;
+            }
+
+            noteSendBtn.disabled = true;
+            setNoteStatus('Sending...');
+            apiPost('/api/send-note/', { text }).then((res) => {
+                if (res && res.ok) {
+                    noteTextarea.value = '';
+                    setNoteStatus('Sent! 💌');
+                    fireStampConfetti();
+                    setTimeout(() => closeBackdrop(noteModal), 1400);
+                } else {
+                    setNoteStatus("Hmm, that didn't go through — try again?");
+                }
+            }).finally(() => {
+                noteSendBtn.disabled = false;
+            });
+        });
+    }
+
     // ============================ Bucket list modal (day 10) ============================
     // Items live server-side in SiteState (see views.py _get_bucket_items),
     // seeded from BOX_CONTENT but reorderable/extendable from here on --
@@ -1094,7 +1267,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     boxes.forEach((box) => {
-        bindLongPressPreview(box);
+        // On mobile the long-press gesture is spoken for by drag-to-swap
+        // reordering (see initMobileReorder) -- binding both would race.
+        if (!mobileGridActive) bindLongPressPreview(box);
         box.addEventListener('click', (e) => {
             // A drag that ends as a tiny move can still fire a click -- ignore
             // clicks that immediately follow a drag release.
@@ -1216,6 +1391,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!mobileGridActive) {
         layoutStackPositions();
         initDraggable();
+    } else {
+        initMobileReorder();
     }
     updateProgress();
     restoreCollectedStampsFromServer();

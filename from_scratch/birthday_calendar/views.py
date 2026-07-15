@@ -9,6 +9,7 @@ from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.views.decorators.http import require_POST
 
 from .models import SiteState
+from .telegram_notify import send_telegram_message
 
 # ---------------------------------------------------------------------------
 # CONFIG
@@ -306,6 +307,42 @@ def _save_position(number, x, y):
     _save_state(obj, data)
 
 
+# Notes are saved here regardless of whether the Telegram push actually
+# goes through, so a misconfigured/offline bot can never lose one.
+def _save_note(text):
+    obj, data = _load_state()
+    notes = data.get("notes", [])
+    notes.append({"text": text, "at": datetime.now(LOCAL_TZ).isoformat()})
+    data["notes"] = notes
+    _save_state(obj, data)
+
+
+# Mobile grid order -- a separate concept from `positions` (which only
+# makes sense for the free-drag desktop pile). Swapping two boxes on the
+# mobile grid reorders this list instead of setting pixel coordinates.
+def _sanitized_box_order(data):
+    order = data.get("box_order") or list(range(1, TOTAL_BOXES + 1))
+    valid = [n for n in order if isinstance(n, int) and 1 <= n <= TOTAL_BOXES]
+    missing = [n for n in range(1, TOTAL_BOXES + 1) if n not in valid]
+    return valid + missing
+
+
+def _get_box_order():
+    _, data = _load_state()
+    return _sanitized_box_order(data)
+
+
+def _swap_box_order(a, b):
+    obj, data = _load_state()
+    order = _sanitized_box_order(data)
+    if a in order and b in order:
+        ia, ib = order.index(a), order.index(b)
+        order[ia], order[ib] = order[ib], order[ia]
+    data["box_order"] = order
+    _save_state(obj, data)
+    return order
+
+
 def _get_bucket_checked():
     _, data = _load_state()
     return set(data.get("bucket_checked", []))
@@ -377,9 +414,10 @@ def main_screen(request):
     today_index = effective_day_index()
     opened = _get_opened()
     positions = _get_positions()
+    box_order = _get_box_order()
     stamp_index = 0
 
-    boxes = []
+    boxes_by_number = {}
     for number in range(1, TOTAL_BOXES + 1):
         content = BOX_CONTENT[number - 1]
         image_path = f"img/items/item {((number - 1) % ITEM_IMAGE_COUNT) + 1}.png"
@@ -421,7 +459,9 @@ def main_screen(request):
             "y": saved_pos["y"] if saved_pos else 0,
         }
         box["content_json"] = json.dumps({**content, "number": number})
-        boxes.append(box)
+        boxes_by_number[number] = box
+
+    boxes = [boxes_by_number[number] for number in box_order]
 
     playlist_unlocked = 6 in opened or today_index >= 6
 
@@ -482,6 +522,22 @@ def api_save_position(request):
 
 
 @require_POST
+def api_swap_order(request):
+    try:
+        data = json.loads(request.body or "{}")
+        a = int(data.get("a"))
+        b = int(data.get("b"))
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return JsonResponse({"ok": False, "error": "invalid payload"}, status=400)
+
+    if not (1 <= a <= TOTAL_BOXES and 1 <= b <= TOTAL_BOXES):
+        return JsonResponse({"ok": False, "error": "out of range"}, status=400)
+
+    order = _swap_box_order(a, b)
+    return JsonResponse({"ok": True, "order": order})
+
+
+@require_POST
 def api_bucket_list(request):
     try:
         data = json.loads(request.body or "{}")
@@ -525,6 +581,26 @@ def api_bucket_add(request):
     emoji = str(data.get("emoji") or "").strip()
     items = _add_bucket_item(emoji, text)
     return JsonResponse({"ok": True, "items": items})
+
+
+NOTE_MAX_LENGTH = 2000
+
+
+@require_POST
+def api_send_note(request):
+    try:
+        data = json.loads(request.body or "{}")
+        text = str(data.get("text") or "").strip()
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return JsonResponse({"ok": False, "error": "invalid payload"}, status=400)
+
+    if not text:
+        return JsonResponse({"ok": False, "error": "text required"}, status=400)
+    text = text[:NOTE_MAX_LENGTH]
+
+    _save_note(text)
+    delivered = send_telegram_message(f"💌 New note from your calendar:\n\n{text}")
+    return JsonResponse({"ok": True, "delivered": delivered})
 
 
 def api_get_state(request):

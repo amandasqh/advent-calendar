@@ -15,8 +15,10 @@ class SiteState(models.Model):
     `data` holds:
       {
         "opened": [1, 2, 3, ...],                       # box numbers
-        "positions": {"1": {"x": 12.0, "y": 40.0}, ...}, # per-box drag position
+        "positions": {"1": {"x": 12.0, "y": 40.0}, ...}, # per-box drag position (desktop pile)
+        "box_order": [3, 1, 2, ...],                     # display order (mobile grid swaps)
         "bucket_checked": [0, 3, 5, ...],                # bucket-list item indices
+        "notes": [{"text": "...", "at": "2026-..."}],    # "write me a note" mailbox
       }
     """
     data = models.JSONField(default=dict, blank=True)
